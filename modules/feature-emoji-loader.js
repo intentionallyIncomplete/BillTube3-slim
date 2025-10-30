@@ -17,17 +17,48 @@ BTFW.define("feature:emoji-loader", [], async () => {
       img.style.display = "none";
     }, { once:true });
     if (img.complete && img.naturalWidth > 0) {
-      // already cached
       cell.classList.remove("loading");
       cell.classList.add("ready");
     }
   }
 
+  const scheduleFrame = typeof requestAnimationFrame === "function"
+    ? requestAnimationFrame
+    : (cb) => setTimeout(cb, 16);
+
+  const supportsIntersectionObserver = typeof IntersectionObserver === "function";
+  const observer = supportsIntersectionObserver ? new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const target = entry.target;
+      if (supportsIntersectionObserver) observer.unobserve(target);
+      prepCell(target);
+    });
+  }) : null;
+
+  let rafId;
   function scan(){
-    $$(".btfw-emoji-grid .btfw-emoji-cell").forEach(prepCell);
+    if (rafId) return;
+    rafId = scheduleFrame(() => {
+      if (!supportsIntersectionObserver) {
+        $$(".btfw-emoji-grid .btfw-emoji-cell").forEach(prepCell);
+        rafId = null;
+        return;
+      }
+
+      $$(".btfw-emoji-grid .btfw-emoji-cell:not([data-observed])").forEach(cell => {
+        cell.dataset.observed = "true";
+        observer.observe(cell);
+      });
+      rafId = null;
+    });
   }
 
-  const mo = new MutationObserver(()=> scan());
+  let scanTimeout;
+  const mo = new MutationObserver(() => {
+    clearTimeout(scanTimeout);
+    scanTimeout = setTimeout(scan, 50);
+  });
   mo.observe(document.body, { childList:true, subtree:true });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", scan);
   else scan();

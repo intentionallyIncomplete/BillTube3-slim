@@ -1,7 +1,20 @@
 BTFW.define("feature:ambient", [], async () => {
-  const STORAGE_KEY = "btfw:ambient:enabled";
+  // const STORAGE_KEY = "btfw:ambient:enabled";
 
   const $ = (selector, root = document) => root.querySelector(selector);
+
+  function getMediaType() {
+    try {
+      return window.PLAYER?.mediaType || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function isDirectMedia() {
+    const type = (getMediaType() || "").toLowerCase();
+    return type === "fi" || type === "gd";
+  }
 
   let active = false;
   let wrap = null;
@@ -100,12 +113,12 @@ BTFW.define("feature:ambient", [], async () => {
     document.head.appendChild(st);
   }
 
-  function removeCSS() {
-    const st = document.getElementById("btfw-ambient-css");
-    if (st && st.parentNode) {
-      st.parentNode.removeChild(st);
-    }
-  }
+  // function removeCSS() {
+  //   const st = document.getElementById("btfw-ambient-css");
+  //   if (st && st.parentNode) {
+  //     st.parentNode.removeChild(st);
+  //   }
+  // }
 
   function waitForWrap(timeout = 5000) {
     if (waitForWrapPromise) return waitForWrapPromise;
@@ -162,15 +175,15 @@ BTFW.define("feature:ambient", [], async () => {
     return wrap;
   }
 
-  function getStoredPreference() {
-    // Always return false - don't remember state between sessions
-    return false;
-  }
+  // function getStoredPreference() {
+  //   // Always return false - don't remember state between sessions
+  //   return false;
+  // }
 
-  function setStoredPreference(value) {
-    // Don't store preference - always start disabled
-    return;
-  }
+  // function setStoredPreference(value) {
+  //   // Don't store preference - always start disabled
+  //   return;
+  // }
 
   function findVideoElement() {
     return $("#ytapiplayer video") || $("#videowrap video") || document.querySelector("video");
@@ -225,18 +238,6 @@ BTFW.define("feature:ambient", [], async () => {
 
     const rect = wrap.getBoundingClientRect();
     const padding = 100;
-
-    glowContainer.style.top = `${rect.top - padding}px`;
-    glowContainer.style.left = `${rect.left - padding}px`;
-    glowContainer.style.width = `${rect.width + padding * 2}px`;
-    glowContainer.style.height = `${rect.height + padding * 2}px`;
-  }
-
-  function updateGlowPosition() {
-    if (!glowContainer || !wrap) return;
-
-    const rect = wrap.getBoundingClientRect();
-    const padding = 100; // Increased padding for more glow spread
 
     glowContainer.style.top = `${rect.top - padding}px`;
     glowContainer.style.left = `${rect.left - padding}px`;
@@ -361,6 +362,11 @@ BTFW.define("feature:ambient", [], async () => {
         socket.on("changeMedia", () => {
           if (!active) return;
           setTimeout(() => {
+            if (!active) return;
+            if (!isDirectMedia()) {
+              disable();
+              return;
+            }
             ensureAmbientRoot();
             attachVideo(findVideoElement());
           }, 400);
@@ -371,6 +377,11 @@ BTFW.define("feature:ambient", [], async () => {
 
   async function enable() {
     if (active) return true;
+
+    if (!isDirectMedia()) {
+      console.warn("[ambient] Ambient mode requires direct media (fi/gd).");
+      return false;
+    }
 
     ensureCSS();
     const wrapEl = $("#videowrap") || (await waitForWrap());

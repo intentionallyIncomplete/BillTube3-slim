@@ -72,10 +72,15 @@ BTFW.define("feature:poll-overlay", [], async () => {
     }
 
     .btfw-poll-options-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 16px;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 1rem !important;
+    align-items: stretch;
+    margin: 20px 0 !important;
+    justify-content: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
     }
 
     .btfw-poll-option-row {
@@ -157,10 +162,9 @@ BTFW.define("feature:poll-overlay", [], async () => {
   let videoOverlay = null;
   let currentPoll = null;
   let socketEventsWired = false;
-  let userVotes = new Set(); // Track which options user voted for
+  let userVotes = new Set();
   let pollDomObserver = null;
   let observedPollElement = null;
-
 
   const ENTITY_DECODER = document.createElement("textarea");
 
@@ -174,6 +178,17 @@ BTFW.define("feature:poll-overlay", [], async () => {
     }
     ENTITY_DECODER.innerHTML = value;
     return ENTITY_DECODER.value;
+  }
+
+  function resolvePollTitle(rawTitle) {
+    const decoded = decodeHtmlEntities(rawTitle);
+    if (typeof decoded === "string") {
+      const trimmed = decoded.trim();
+      if (trimmed.length) {
+        return trimmed;
+      }
+    }
+    return "Poll";
   }
 
   function injectCSS() {
@@ -213,11 +228,9 @@ BTFW.define("feature:poll-overlay", [], async () => {
     videowrap.appendChild(overlay);
     videoOverlay = overlay;
 
-    // Wire up close button
     const closeBtn = overlay.querySelector(".btfw-poll-video-close");
     closeBtn.addEventListener("click", hideVideoOverlay);
 
-    // Wire up end poll button
     const endBtn = overlay.querySelector(".btfw-poll-end-btn");
     endBtn.addEventListener("click", () => {
       if (window.socket && window.socket.emit) {
@@ -233,12 +246,17 @@ BTFW.define("feature:poll-overlay", [], async () => {
   }
 
   function canEndPoll() {
-    // Show end poll button if user has sufficient rank (usually rank 2+ can end polls)
     return window.CLIENT && window.CLIENT.rank >= 2;
   }
 
   function getOriginalPollButtons() {
-    return document.querySelectorAll("#pollwrap .well .option button");
+    // Only look at the active poll (previous polls remain in the DOM as history)
+    // Using .well without the .active qualifier would pick up historical poll
+    // buttons too, which changes the length of the NodeList once a poll has
+    // been closed. That caused syncOverlayFromDom to abort on subsequent polls
+    // because the overlay button count and source button count no longer
+    // matched, leaving vote counts frozen until a page refresh.
+    return document.querySelectorAll("#pollwrap .well.active .option button");
   }
 
   function stopPollDomObserver() {
@@ -288,7 +306,6 @@ BTFW.define("feature:poll-overlay", [], async () => {
       attributes: true
     });
 
-    // Sync immediately in case the poll was updated before we attached
     syncOverlayFromDom();
   }
 
@@ -398,18 +415,22 @@ BTFW.define("feature:poll-overlay", [], async () => {
     const overlay = createVideoOverlay();
     if (!overlay || !poll) return;
 
-    currentPoll = poll;
+    // FIXED: Create fresh poll data without contamination from previous polls
+    const resolvedTitle = resolvePollTitle(poll.title);
+
+    currentPoll = {
+      ...poll,
+      title: resolvedTitle,
+      votes: poll.votes ? [...poll.votes] : new Array(poll.options?.length || 0).fill(0)
+    };
     userVotes.clear(); // Reset user votes for new poll
     
-    // Update overlay content
     const title = overlay.querySelector(".btfw-poll-video-title");
     const optionsGrid = overlay.querySelector(".btfw-poll-options-grid");
-    const votesSpan = overlay.querySelector(".btfw-poll-votes");
     const endBtn = overlay.querySelector(".btfw-poll-end-btn");
 
-    if (title) title.textContent = decodeHtmlEntities(poll.title || "Poll");
+    if (title) title.textContent = resolvedTitle;
     
-    // Show/hide end poll button based on permissions
     if (endBtn) {
       endBtn.style.display = canEndPoll() ? "block" : "none";
     }
@@ -428,8 +449,8 @@ BTFW.define("feature:poll-overlay", [], async () => {
         optionText.className = "btfw-poll-option-text";
         optionText.textContent = decodeHtmlEntities(option);
         
-        // Set initial vote count
-        const voteCount = poll.votes && poll.votes[index] ? poll.votes[index] : 0;
+        // FIXED: Use currentPoll.votes (cleaned data) instead of poll.votes
+        const voteCount = currentPoll.votes[index] || 0;
         btn.textContent = voteCount.toString();
         
         btn.addEventListener("click", () => {
@@ -439,9 +460,7 @@ BTFW.define("feature:poll-overlay", [], async () => {
             console.error("Failed to trigger poll vote:", e);
           }
 
-          // Track user vote for visual feedback
           if (poll.multi) {
-            // Multi-choice: toggle selection
             if (userVotes.has(index)) {
               userVotes.delete(index);
               btn.classList.remove("active");
@@ -450,7 +469,6 @@ BTFW.define("feature:poll-overlay", [], async () => {
               btn.classList.add("active");
             }
           } else {
-            // Single choice: clear others and select this one
             userVotes.clear();
             optionsGrid.querySelectorAll(".btfw-poll-option-btn").forEach(b => {
               b.classList.remove("active");
@@ -466,16 +484,14 @@ BTFW.define("feature:poll-overlay", [], async () => {
       });
     }
 
-    // Update vote count
-    updateVoteDisplay(poll);
+    // FIXED: Use currentPoll instead of poll parameter
+    updateVoteDisplay(currentPoll);
 
     overlay.classList.add("btfw-poll-active");
 
-    // Ensure overlay stays in sync with the native poll controls once they mount
     setTimeout(() => {
       syncOverlayFromDom();
       startPollDomObserver();
-
     }, 200);
   }
 
@@ -485,25 +501,20 @@ BTFW.define("feature:poll-overlay", [], async () => {
       currentPoll = null;
       userVotes.clear();
       stopPollDomObserver();
-
     }
   }
 
   function updateVoteDisplay(poll) {
     if (!videoOverlay || !poll) return;
 
-    if (currentPoll) {
-      currentPoll = {
-        ...currentPoll,
-        ...poll,
-        votes: Array.isArray(poll.votes) ? poll.votes : currentPoll.votes
-      };
+    // FIXED: Don't merge with old currentPoll data - just update votes
+    if (currentPoll && poll.votes) {
+      currentPoll.votes = [...poll.votes]; // Fresh copy, no contamination
     }
     
     const votesSpan = videoOverlay.querySelector(".btfw-poll-votes");
     const optionsGrid = videoOverlay.querySelector(".btfw-poll-options-grid");
     
-    // Update vote counts on buttons to match original poll
     if (optionsGrid && poll.votes) {
       const buttons = optionsGrid.querySelectorAll(".btfw-poll-option-btn");
       const originalPollButtons = getOriginalPollButtons();
@@ -538,7 +549,6 @@ BTFW.define("feature:poll-overlay", [], async () => {
       }
     }
     
-    // Update total vote count
     if (votesSpan && poll.votes) {
       const totalVotes = poll.votes.reduce((sum, count) => sum + (count || 0), 0);
       votesSpan.textContent = `${totalVotes} vote${totalVotes !== 1 ? 's' : ''}`;
@@ -550,12 +560,10 @@ BTFW.define("feature:poll-overlay", [], async () => {
   }
 
   function checkForExistingPoll() {
-    // Check if there's already an active poll when the module loads
     const existingPoll = document.querySelector('#pollwrap .well.active');
     if (existingPoll) {
       console.log("Found existing active poll, extracting data...");
       
-      // Extract poll data from the existing DOM
       const titleElement = existingPoll.querySelector('h3');
       const optionElements = existingPoll.querySelectorAll('.option');
       
@@ -564,7 +572,7 @@ BTFW.define("feature:poll-overlay", [], async () => {
           title: titleElement.textContent.trim(),
           options: [],
           votes: [],
-          multi: false // Default, will be updated if we can detect it
+          multi: false
         };
         
         optionElements.forEach((option, index) => {
@@ -585,42 +593,42 @@ BTFW.define("feature:poll-overlay", [], async () => {
   }
 
   function wireSocketEvents() {
-  if (socketEventsWired || !window.socket) return;
+    if (socketEventsWired || !window.socket) return;
 
-  try {
-    // Listen for new polls
-    window.socket.on("newPoll", (poll) => {
-      if (poll && poll.title) {
-        showVideoOverlay(poll);
-      }
-    });
+    try {
+      // Listen for new polls
+      window.socket.on("newPoll", (poll) => {
+        if (poll) {
+          showVideoOverlay(poll);
+        }
+      });
 
-    // Listen for poll updates (vote counts)
-    window.socket.on("updatePoll", (poll) => {
-      if (poll && currentPoll) {
-        updateVoteDisplay(poll);
-      }
-    });
+      // Listen for poll updates (vote counts)
+      window.socket.on("updatePoll", (poll) => {
+        if (poll && currentPoll) {
+          updateVoteDisplay(poll);
+        }
+      });
 
-    // Listen for poll closure
-    window.socket.on("closePoll", () => {
-      hideVideoOverlay();
-    });
+      // Listen for poll closure
+      window.socket.on("closePoll", () => {
+        hideVideoOverlay();
+      });
 
-    // Handle socket reconnection
-    window.socket.on("connect", () => {
-      console.log("[poll-overlay] Socket reconnected, re-wiring events");
-      socketEventsWired = false;
-      setTimeout(() => {
-        wireSocketEvents();
-      }, 500);
-    });
+      // Handle socket reconnection
+      window.socket.on("connect", () => {
+        console.log("[poll-overlay] Socket reconnected, re-wiring events");
+        socketEventsWired = false;
+        setTimeout(() => {
+          wireSocketEvents();
+        }, 500);
+      });
 
-    socketEventsWired = true;
-  } catch (e) {
-    console.warn("[poll-overlay] Socket event wiring failed:", e);
+      socketEventsWired = true;
+    } catch (e) {
+      console.warn("[poll-overlay] Socket event wiring failed:", e);
+    }
   }
-}
 
   function waitForSocket() {
     return new Promise((resolve) => {
@@ -630,7 +638,7 @@ BTFW.define("feature:poll-overlay", [], async () => {
       }
 
       let attempts = 0;
-      const maxAttempts = 50; // 5 seconds max
+      const maxAttempts = 50;
       const checkSocket = () => {
         attempts++;
         if (window.socket && window.socket.on) {
@@ -639,7 +647,7 @@ BTFW.define("feature:poll-overlay", [], async () => {
           setTimeout(checkSocket, 100);
         } else {
           console.warn("[poll-overlay] Socket not available after 5 seconds");
-          resolve(); // Continue anyway
+          resolve();
         }
       };
 
@@ -651,11 +659,9 @@ BTFW.define("feature:poll-overlay", [], async () => {
     try {
       injectCSS();
       
-      // Wait for socket to be available before wiring events
       await waitForSocket();
       wireSocketEvents();
       
-      // Check for existing poll after a short delay to ensure DOM is ready
       setTimeout(() => {
         checkForExistingPoll();
       }, 500);
@@ -665,14 +671,12 @@ BTFW.define("feature:poll-overlay", [], async () => {
     }
   }
 
-  // Boot when DOM is ready
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", boot);
   } else {
-    setTimeout(boot, 0); // Async to avoid blocking
+    setTimeout(boot, 0);
   }
 
-  // Also boot on layout ready event (with delay to ensure everything is settled)
   document.addEventListener("btfw:layoutReady", () => {
     setTimeout(boot, 200);
   });

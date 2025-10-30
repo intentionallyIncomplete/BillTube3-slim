@@ -1,24 +1,39 @@
 /*! BillTube Framework — v3.4f */
-(function(){
-  var scripts=document.getElementsByTagName('script');
-  var BASE=(document.currentScript&&document.currentScript.src)||scripts[scripts.length-1].src; BASE=BASE.replace(/\/[^\/]*$/, "");
+const DEV_CDN = "https://cdn.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-slim@dev";
 
-  var Registry=Object.create(null);
-  function define(name,deps,factory){ Registry[name]={deps:deps||[],factory:factory,instance:null}; }
-  async function init(name){
-    var m=Registry[name]; if(!m) throw new Error("Module not found: "+name);
-    if(m.instance) return m.instance;
-    for(var i=0;i<m.deps.length;i++){ await init(m.deps[i]); }
-    m.instance = await m.factory({define, init, BASE});
-    return m.instance;
+(function(){
+  var Registry = Object.create(null);
+  function define(moduleName, moduleDeps, functionFactory) {
+    Registry[moduleName] = {
+      deps: moduleDeps || [],
+      factory: functionFactory,
+      instance: null
+    };
   }
-  window.BTFW = { define, init, BASE };
+  async function init(moduleName){
+    var module = Registry[moduleName]; 
+    if (!module) {
+      throw new Error("Module not found: "+moduleName);
+    }
+    if (module.instance) {
+      return module.instance;
+    }
+    
+    for (var i=0;i<module.deps.length;i++) { 
+      await init(module.deps[i]);
+    }
+    
+    module.instance = await module.factory({define, init, DEV_CDN});
+    return module.instance;
+  }
+
+  window.BTFW = { define, init, DEV_CDN };
 
   var BootOverlay=(function(){
-    var overlay=null;
-    var styleEl=null;
-    var muteInterval=null;
-    var suppressedVideos=new Map();
+    var overlay = null;
+    var styleEl = null;
+    var muteInterval = null;
+    var suppressedVideos = new Map();
 
     function cleanupVideoRefs(){
       for (const [video] of suppressedVideos) {
@@ -28,13 +43,13 @@
       }
     }
 
-    function suppressVideoAudio(){
+    function suppressVideoAudio() {
       cleanupVideoRefs();
-      var videos=document.querySelectorAll('video');
-      videos.forEach(function(video){
+      var videos = document.querySelectorAll('video');
+      videos.forEach(function(video) {
         if (!(video instanceof HTMLVideoElement)) return;
         if (!suppressedVideos.has(video)) {
-          var state={
+          var state = {
             muted: video.muted,
             volume: (typeof video.volume === 'number') ? video.volume : null
           };
@@ -45,14 +60,14 @@
       });
     }
 
-    function startAudioSuppression(){
+    function startAudioSuppression() {
       suppressVideoAudio();
       if (muteInterval) return;
       muteInterval = setInterval(suppressVideoAudio, 250);
       document.documentElement && document.documentElement.classList.add('btfw-loading-muted');
     }
 
-    function stopAudioSuppression(){
+    function stopAudioSuppression() {
       if (muteInterval) {
         clearInterval(muteInterval);
         muteInterval = null;
@@ -73,17 +88,8 @@
       document.documentElement && document.documentElement.classList.remove('btfw-loading-muted');
     }
 
-    function ensureStyles(){
-      if (styleEl) return;
-      styleEl=document.createElement('style');
-      styleEl.id='btfw-boot-overlay-style';
-      styleEl.textContent="\n        #btfw-boot-overlay{\n          position:fixed;\n          inset:0;\n          background:radial-gradient(circle at 20% 20%, rgba(41,52,89,0.28), rgba(5,6,13,0.92));\n          backdrop-filter:blur(6px);\n          display:flex;\n          align-items:center;\n          justify-content:center;\n          z-index:10000;\n          opacity:1;\n          transition:opacity 220ms ease, visibility 220ms ease;\n          visibility:visible;\n        }\n        #btfw-boot-overlay[data-state=hidden]{\n          opacity:0;\n          visibility:hidden;\n        }\n        .btfw-boot-overlay__card{\n          display:flex;\n          flex-direction:column;\n          align-items:center;\n          gap:1rem;\n          padding:2.5rem 3rem;\n          border-radius:18px;\n          background:rgba(9,12,23,0.82);\n          box-shadow:0 18px 48px rgba(3,8,20,0.45);\n          color:#f5f7ff;\n          text-align:center;\n          min-width:260px;\n          font-family:'Inter','Segoe UI',sans-serif;\n        }\n        .btfw-boot-overlay__ring{\n          width:58px;\n          height:58px;\n          border-radius:50%;\n          border:4px solid rgba(255,255,255,0.18);\n          border-top-color:#6d4df6;\n          animation:btfw-boot-spin 1s linear infinite;\n        }\n        .btfw-boot-overlay__label{\n          font-size:0.95rem;\n          letter-spacing:0.02em;\n          opacity:0.88;\n        }\n        .btfw-boot-overlay__label strong{\n          display:block;\n          font-size:1.05rem;\n          letter-spacing:0.03em;\n          margin-bottom:0.35rem;\n        }\n        .btfw-boot-overlay__error{\n          display:none;\n          font-size:0.85rem;\n          color:#ffb4c1;\n        }\n        #btfw-boot-overlay[data-state=error] .btfw-boot-overlay__error{\n          display:block;\n        }\n        #btfw-boot-overlay[data-state=error] .btfw-boot-overlay__ring{\n          border-color:rgba(255,180,193,0.3);\n          border-top-color:#ff5678;\n          animation:none;\n        }\n        @keyframes btfw-boot-spin{\n          from{transform:rotate(0deg);}\n          to{transform:rotate(360deg);}\n        }\n      ";
-      document.head.appendChild(styleEl);
-    }
-
     function attach(){
       if (overlay) return overlay;
-      ensureStyles();
       overlay=document.createElement('div');
       overlay.id='btfw-boot-overlay';
       overlay.setAttribute('role','status');
@@ -99,7 +105,8 @@
       return overlay;
     }
 
-    function show(){ attach(); startAudioSuppression(); }
+    function show(){ attach(); 
+      startAudioSuppression(); }
 
     function hide(){
       stopAudioSuppression();
@@ -139,33 +146,62 @@ var SUPPORTS_PRELOAD = (function(){
 })();
 
 function preload(href){
-  return new Promise(function(resolve){
-    var l = document.createElement("link");
-    var url = qparam(href, "v="+encodeURIComponent(BTFW_VERSION));
+  return new Promise(function(resolve, reject){
+    var link = document.createElement("link");
+    var url;
 
-    if (SUPPORTS_PRELOAD) {
-      l.rel = "preload";
-      l.as  = "style";
-      l.onload = function(){
-        l.rel = "stylesheet";
-        l.removeAttribute("onload");
-        resolve(true);
-      };
-      l.onerror = function(){
-        l.rel = "stylesheet";
-        resolve(false);
-      };
-    } else {
-      l.rel = "stylesheet";
-      l.onload = function(){ resolve(true); };
-      l.onerror = function(){ resolve(false); };
+    try {
+      url = qparam(href, "v="+encodeURIComponent(BTFW_VERSION));
+    } catch (err) {
+      reject(err instanceof Error ? err : new Error("Failed to prepare preload URL"));
+      return;
     }
 
-    l.href = url;
-    document.head.appendChild(l);
+    var settled = false;
+
+    function promoteToStylesheet(){
+      link.rel = "stylesheet";
+      link.removeAttribute("onload");
+      link.removeAttribute("onerror");
+    }
+
+    function handleLoad(){
+      if (settled) return;
+      settled = true;
+      promoteToStylesheet();
+      resolve(true);
+    }
+
+    function handleError(event){
+      if (settled) return;
+      settled = true;
+      promoteToStylesheet();
+      var reason = event && event.error ? event.error : new Error("Failed to preload stylesheet: " + href);
+      reject(reason);
+    }
+
+    if (SUPPORTS_PRELOAD) {
+      link.rel = "preload";
+      link.as  = "style";
+    } else {
+      link.rel = "stylesheet";
+    }
+
+    link.onload = handleLoad;
+    link.onerror = handleError;
+    link.href = url;
+
+    document.head.appendChild(link);
 
     if (!SUPPORTS_PRELOAD) {
-      resolve(true);
+      // Fallback browsers load styles directly; mark success once appended.
+      // Give the browser a microtask to signal errors before resolving.
+      Promise.resolve().then(function(){
+        if (!settled) {
+          settled = true;
+          resolve(true);
+        }
+      });
     }
   });
 }
@@ -180,19 +216,22 @@ function load(src){
     document.head.appendChild(s);
   });
 }
-
+  
+  console.log('[BTFW] DEV_CDN:', DEV_CDN);
   // Preload CSS in proper order for layout stability
   Promise.all([
-    preload(BASE+"/css/tokens.css"),
-    preload(BASE+"/css/base.css"),
-    preload(BASE+"/css/navbar.css"),
-    preload(BASE+"/css/chat.css"),
-    preload(BASE+"/css/overlays.css"),
-    preload(BASE+"/css/player.css"),
-    preload(BASE+"/css/mobile.css")
+    preload(DEV_CDN+"/css/tokens.css"),
+    preload(DEV_CDN+"/css/base.css"),
+    preload(DEV_CDN+"/css/navbar.css"),
+    preload(DEV_CDN+"/css/chat.css"),
+    preload(DEV_CDN+"/css/overlays.css"),
+    preload(DEV_CDN+"/css/player.css"),
+    preload(DEV_CDN+"/css/mobile.css"),
+    preload(DEV_CDN+"/css/boot-overlay.css")
   ]).then(function(){
     // Load modules in dependency order - core first, then layout-dependent modules
     var mods=[
+      "modules/util-motion.js",
       "modules/feature-style-core.js",
       "modules/feature-bulma-layer.js",
       "modules/feature-layout.js",
@@ -214,11 +253,11 @@ function load(src){
       "modules/feature-chat-timestamps.js",
       "modules/feature-chat-ignore.js",
       "modules/feature-gifs.js",
-      "modules/feature-ambient.js",
       "modules/feature-video-overlay.js",
       "modules/feature-poll-overlay.js",
       "modules/feature-pip.js",
       "modules/feature-notify.js",
+      "modules/feature-notification-sounds.js",
       "modules/feature-sync-guard.js",
       "modules/feature-chat-commands.js",
       "modules/feature-playlist-performance.js",
@@ -229,9 +268,12 @@ function load(src){
       "modules/feature-motd-editor.js",
       "modules/feature-video-enhancements.js",
       "modules/feature-channel-theme-admin.js",
-      "modules/feature-theme-settings.js"
+      "modules/feature-theme-settings.js",
+      "modules/feature-ratings.js"
     ];
-    return mods.reduce((p,f)=>p.then(()=>load(BASE+"/"+f)), Promise.resolve());
+    return Promise.all(bundles.map(function(file){
+      return load(DEV_CDN + file);
+    }));
   }).then(function(){
     return Promise.all([
       BTFW.init("feature:styleCore"),
@@ -241,11 +283,8 @@ function load(src){
     // Initialize layout early
     return BTFW.init("feature:layout");
   }).then(function(){
-    // Wait a bit for layout to settle
-    return new Promise(resolve => setTimeout(resolve, 100));
-  }).then(function(){
     // Initialize all remaining modules
-    return Promise.all([
+    var inits = [
       BTFW.init("feature:channels"),
       BTFW.init("feature:footer"),
       BTFW.init("feature:player"),
@@ -264,11 +303,11 @@ function load(src){
       BTFW.init("feature:modal-skin"),
       BTFW.init("feature:nowplaying"),
       BTFW.init("feature:gifs"),
-      BTFW.init("feature:ambient"),
       BTFW.init("feature:videoOverlay"),
       BTFW.init("feature:poll-overlay"),
       BTFW.init("feature:pip"),
       BTFW.init("feature:notify"),
+      BTFW.init("feature:notification-sounds"),
       BTFW.init("feature:syncGuard"),
       BTFW.init("feature:chat-commands"),
       BTFW.init("feature:playlistPerformance"),
@@ -278,10 +317,11 @@ function load(src){
       BTFW.init("feature:billcast"),
       BTFW.init("feature:motd-editor"),
       BTFW.init("feature:videoEnhancements"),
-      BTFW.init("feature:footer"),
       BTFW.init("feature:channelThemeAdmin"),
-      BTFW.init("feature:themeSettings")
-    ]);
+      BTFW.init("feature:themeSettings"),
+      BTFW.init("feature:ratings")
+    ];
+    return Promise.all(inits);
   }).then(function(){
     console.log("[BTFW v3.4f] Ready.");
     // Dispatch a final ready event
@@ -294,5 +334,4 @@ function load(src){
     console.error("[BTFW v3.4f] boot failed:", e&&e.message||e);
     BootOverlay.fail((e&&e.message)||'Unknown error');
   });
-
 })();
