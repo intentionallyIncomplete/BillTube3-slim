@@ -44,8 +44,8 @@ window.BTFW_THEME_ADMIN = {
   (function (W, D) {
     // Configurable bits
     var CDN_BASE = "https://cdn.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-slim";
-    var FILE     = "billtube-fw.js";
-    var VERSION  = "dev-001";
+    var FILE = "billtube-fw.js";
+    var VERSION = "dev-001";
     var DEV_NOCACHE = false;
     var DEV_MODE = true;
     
