@@ -1,11 +1,8 @@
-/* BTFW — feature:bulma-layer (dark/light/auto + Bulma dark overrides + Bootstrap modal bridge) */
 BTFW.define("feature:bulma-layer", [], async () => {
-  // Persisted preference (kept for Theme Settings compatibility)
-  const KEY = "btfw:theme:mode";                     // "auto" | "dark" | "light"
-  const KEY_OLD = "btfw:bulma:theme";                // legacy key support
+  const KEY = "btfw:theme:mode";
+  const KEY_OLD = "btfw:bulma:theme";
   const mq = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
 
-  // Single style injector for all dark-scope rules
   let styleEl;
   function ensureStyle() {
     if (styleEl) return styleEl;
@@ -15,7 +12,6 @@ BTFW.define("feature:bulma-layer", [], async () => {
     return styleEl;
   }
 
-  // Dark theme CSS (Bulma surfaces + Bootstrap/CyTube modal bridge), scoped to data-btfw-theme="dark"
   const DARK_CSS = `
 /* --- Global dark scope --- */
 html[data-btfw-theme="dark"] { color-scheme: dark; }
@@ -121,7 +117,8 @@ html[data-btfw-theme="dark"] .modal-content {
 }
 @media screen and (min-width: 769px) {
   .modal-card, .modal-content {
-    width: 44rem;
+    width: auto;
+    max-width: 55rem;
   }
 }
 html[data-btfw-theme="dark"] .modal-header,
@@ -145,7 +142,6 @@ html[data-btfw-theme="dark"] .modal .btn-default {
 body.modal-open { overflow: hidden; }
 `;
 
-  // Color-scheme meta for proper form controls on some browsers
   function ensureColorSchemeMeta(mode) {
     const desired = (mode === "dark") ? "dark" : "light";
     let meta = document.querySelector('meta[name="color-scheme"]');
@@ -157,7 +153,6 @@ body.modal-open { overflow: hidden; }
     meta.setAttribute("content", desired);
   }
 
-  // Pref read/write (with backward compatibility)
   function readPref() {
     try {
       const v = localStorage.getItem(KEY);
@@ -168,25 +163,21 @@ body.modal-open { overflow: hidden; }
   }
   function writePref(v) { try { localStorage.setItem(KEY, v); } catch(_){} }
 
-  // Compute effective mode if "auto"
   function resolveAuto() {
     return (mq && mq.matches) ? "dark" : "light";
   }
 
-  // Apply theme & CSS bridge
   function apply(mode) {
     const effective = (mode === "auto") ? resolveAuto() : (mode || "dark");
     const html = document.documentElement;
     html.setAttribute("data-btfw-theme", effective);
-    html.classList.toggle("btfw-theme-dark", effective === "dark"); // keep compatibility with your CSS
+    html.classList.toggle("btfw-theme-dark", effective === "dark");
     ensureColorSchemeMeta(effective);
 
-    // Inject or clear dark CSS
     const st = ensureStyle();
     st.textContent = (effective === "dark") ? DARK_CSS : "";
   }
 
-  // Public API
   function setTheme(mode) {
     const m = (mode === "auto" || mode === "dark" || mode === "light") ? mode : "dark";
     writePref(m);
@@ -194,7 +185,6 @@ body.modal-open { overflow: hidden; }
   }
   function getTheme() { return readPref(); }
 
-  // React to OS scheme while in Auto
   function wireAutoWatcher() {
     if (!mq || !mq.addEventListener) return;
     mq.addEventListener("change", () => {
@@ -202,10 +192,9 @@ body.modal-open { overflow: hidden; }
     });
   }
 
-  // Boot
   function boot() {
-    apply(readPref());     // default dark if unset
-    wireAutoWatcher();     // live-update if system scheme changes
+    apply(readPref());
+    wireAutoWatcher();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
@@ -214,5 +203,4 @@ body.modal-open { overflow: hidden; }
   return { name: "feature:bulma-layer", setTheme, getTheme };
 });
 
-/* Compatibility alias so init("feature:bulma") still works in your loader */
 BTFW.define("feature:bulma", ["feature:bulma-layer"], async ({}) => ({ name: "feature:bulma" }));

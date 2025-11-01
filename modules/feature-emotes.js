@@ -2,8 +2,8 @@
 BTFW.define("feature:emotes", [], async () => {
   const $  = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  const motion = await BTFW.init("util:motion");
 
-  /* ------------------------ helpers ------------------------ */
   function insertAtCursor(input, text){
     input.focus();
     const s = input.selectionStart ?? input.value.length;
@@ -16,7 +16,6 @@ BTFW.define("feature:emotes", [], async () => {
     input.dispatchEvent(new Event("input", {bubbles:true}));
   }
 
-  // Ensure single-codepoint emoji render as emoji (VS16)
   function normalizeEmojiForInsert(s){
     if (/\uFE0F/.test(s)) return s;
     const cps = Array.from(s);
@@ -31,29 +30,26 @@ BTFW.define("feature:emotes", [], async () => {
     }
   }
 
-  /* ------------------------ state ------------------------- */
   const CHANNEL_NAME = (window.CHANNEL && window.CHANNEL.name) || "default";
   const RECENT_KEY   = `btfw:recent:emotes:${CHANNEL_NAME}`;
 
   let state = {
-    tab: "emotes",                // "emotes" | "emoji" | "recent"
+    tab: "emotes",
     list: { emotes: [], emoji: [], recent: [] },
     filtered: [],
     highlight: 0,
     emojiReady: false,
     search: "",
-    renderEpoch: 0               // cancels in-flight chunked renders
+    renderEpoch: 0
   };
 
-  // Grid sizing logic (purely for keyboard nav calculations)
-  const TILE_APPROX = 72;        // px per tile including gaps for estimating columns
+  const TILE_APPROX = 72;
 
   function gridCols(grid){
     const w = grid.clientWidth || 520;
     return Math.max(3, Math.floor(w / TILE_APPROX));
   }
 
-  /* ------------------------ data -------------------------- */
   function loadChannelEmotes(){
     const src = Array.isArray(window.CHANNEL?.emotes) ? window.CHANNEL.emotes : [];
     state.list.emotes = src
@@ -109,7 +105,6 @@ BTFW.define("feature:emotes", [], async () => {
     try { localStorage.setItem(RECENT_KEY, JSON.stringify(state.list.recent)); } catch(_){}
   }
 
-  /* ------------------------ popover UI ------------------------ */
   function ensurePopover(){
     let pop = $("#btfw-emotes-pop");
     if (pop) return pop;
@@ -118,7 +113,10 @@ BTFW.define("feature:emotes", [], async () => {
 
     pop = document.createElement("div");
     pop.id = "btfw-emotes-pop";
-    pop.className = "btfw-popover btfw-emotes-pop hidden";
+    pop.className = "btfw-popover btfw-emotes-pop";
+    pop.dataset.btfwPopoverState = "closed";
+    pop.setAttribute("hidden", "");
+    pop.setAttribute("aria-hidden", "true");
     pop.innerHTML = `
       <div class="btfw-emotes-head">
         <div class="btfw-emotes-tabs">
@@ -127,8 +125,8 @@ BTFW.define("feature:emotes", [], async () => {
           <button class="btfw-tab" data-tab="recent">Recent</button>
         </div>
         <div class="btfw-emotes-search">
-          <input id="btfw-emotes-search" type="text" placeholder="Search…">
-          <button id="btfw-emotes-clear" title="Clear">Clear</button>
+          <input id="btfw-emotes-search" type="search" placeholder="Search…" autocomplete="off" />
+          <button id="btfw-emotes-clear" class="btfw-emotes-clear" type="button" title="Clear search" aria-label="Clear search" aria-hidden="true" tabindex="-1">×</button>
         </div>
         <button class="btfw-emotes-close" title="Close">×</button>
       </div>
@@ -144,12 +142,23 @@ BTFW.define("feature:emotes", [], async () => {
     }
 
     // Tabs
+    const syncSearchClear = ()=>{
+      const input = $("#btfw-emotes-search", pop);
+      const btn   = $("#btfw-emotes-clear", pop);
+      if (!input || !btn) return;
+      const hasValue = input.value.length > 0;
+      btn.classList.toggle("is-visible", hasValue);
+      btn.setAttribute("aria-hidden", hasValue ? "false" : "true");
+      btn.tabIndex = hasValue ? 0 : -1;
+    };
+
     pop.querySelector(".btfw-emotes-tabs").addEventListener("click", ev=>{
       const btn = ev.target.closest(".btfw-tab");
       if (!btn) return;
       pop.querySelectorAll(".btfw-tab").forEach(x=>x.classList.toggle("is-active", x===btn));
       state.tab = btn.getAttribute("data-tab");
       state.search = ""; $("#btfw-emotes-search").value = "";
+      syncSearchClear();
       if (state.tab === "emoji" && !state.emojiReady) loadEmoji();
       render(true);
       focusGrid();
@@ -160,19 +169,20 @@ BTFW.define("feature:emotes", [], async () => {
       let t = 0;
       $("#btfw-emotes-search", pop).addEventListener("input", e=>{
         state.search = e.target.value.trim();
+        syncSearchClear();
         clearTimeout(t);
         t = setTimeout(()=> render(true), 120);
       });
     })();
     $("#btfw-emotes-clear", pop).addEventListener("click", ()=>{
       state.search = ""; $("#btfw-emotes-search").value = "";
+      syncSearchClear();
       render(true); focusGrid();
     });
 
     // Close button
     $(".btfw-emotes-close", pop).addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); close(); });
 
-    // Keyboard navigation (full list)
     $("#btfw-emotes-grid", pop).addEventListener("keydown", ev=>{
       const grid = $("#btfw-emotes-grid");
       const total = grid.querySelectorAll(".btfw-emote-tile").length;
@@ -199,13 +209,16 @@ BTFW.define("feature:emotes", [], async () => {
 
     // Click-outside to close
     document.addEventListener("click", (e)=>{
-      if (pop.classList.contains("hidden")) return;
+      if (pop.dataset.btfwPopoverState !== "open") return;
       const within = e.target.closest("#btfw-emotes-pop") || e.target.closest("#btfw-btn-emotes");
       if (!within) close();
     }, true);
 
     // First position & fixed height
     positionPopover(true);
+
+    syncSearchClear();
+    pop._btfwSyncSearchClear = syncSearchClear;
 
     return pop;
   }
@@ -224,7 +237,6 @@ BTFW.define("feature:emotes", [], async () => {
 
   /* ------------------- anchoring & watchers ------------------- */
   function findBottomBar(){
-    // Prefer custom bottom bar → fallback to CyTube controls → final fallback: input itself
     return document.getElementById("btfw-chat-bottombar")
         || document.getElementById("chatcontrols")
         || document.getElementById("chatline");
@@ -242,9 +254,6 @@ function positionPopover(){
     });
   }
 }
-
-
-
 
   function watchPosition(){
     const wrap   = document.getElementById("chatwrap") || document.body;
@@ -270,11 +279,9 @@ function positionPopover(){
     }
   }
 
-  /* ------------------- render (chunked) ------------------- */
   function render(fromSearch){
     const grid = $("#btfw-emotes-grid"); if (!grid) return;
 
-    // Filter entire list
     const q = (state.search || "").toLowerCase();
     if (state.tab === "emotes") {
       state.filtered = q ? state.list.emotes.filter(x => x.name.toLowerCase().includes(q)) : state.list.emotes;
@@ -288,16 +295,13 @@ function positionPopover(){
         : state.list.recent;
     }
 
-    // Reset scroll & highlight on new search/tab
     if (fromSearch) {
       grid.scrollTop = 0;
       state.highlight = 0;
     }
 
-    // Start a new render epoch (cancel any in-flight chunk)
     const epoch = ++state.renderEpoch;
 
-    // Hard clear and start chunked build
     grid.innerHTML = "";
     const total = state.filtered.length;
     let i = 0;
@@ -358,7 +362,6 @@ function positionPopover(){
       }
       grid.appendChild(frag);
 
-      // Let emoji-compat (Twemoji) parse the appended chunk
       document.dispatchEvent(new CustomEvent("btfw:emotes:rendered", { detail:{ container: grid } }));
 
       if (i < total) {
@@ -368,7 +371,6 @@ function positionPopover(){
           setTimeout(step, 0);
         }
       } else {
-        // Finalize selection styling
         highlightActive();
       }
     }
@@ -394,7 +396,6 @@ function positionPopover(){
     else if (r.bottom > gr.bottom) grid.scrollTop += (r.bottom - gr.bottom) + 8;
   }
 
-  /* --------------------- buttons ---------------------- */
   function removeLegacyButtons(){
     const sels = [
       "#emotelistbtn", "#emotelist", "#emote-list", "#emote-btn",
@@ -423,7 +424,6 @@ function positionPopover(){
       : '<span aria-hidden="true">🙂</span>';
     btn.title = "Emotes / Emoji";
 
-    // place before GIF button if present
     const gifBtn = bar.querySelector("#btfw-btn-gif, .btfw-btn-gif");
     if (gifBtn && gifBtn.parentNode) gifBtn.parentNode.insertBefore(btn, gifBtn);
     else bar.appendChild(btn);
@@ -431,7 +431,7 @@ function positionPopover(){
     btn.addEventListener("click", ev=>{
   ev.preventDefault(); ev.stopPropagation();
   const pop = document.getElementById("btfw-emotes-pop");
-  (pop && !pop.classList.contains("hidden")) ? close() : open();
+  (pop && pop.dataset.btfwPopoverState === "open") ? close() : open();
 }, {capture:true});
 
   }
@@ -446,7 +446,7 @@ el.parentNode.replaceChild(c, el);
 c.addEventListener("click", ev=>{
   ev.preventDefault(); ev.stopPropagation();
   const pop = document.getElementById("btfw-emotes-pop");
-  (pop && !pop.classList.contains("hidden")) ? close() : open();
+  (pop && pop.dataset.btfwPopoverState === "open") ? close() : open();
 }, {capture:true});
       });
     });
@@ -459,22 +459,25 @@ c.addEventListener("click", ev=>{
     loadRecent();
     state.tab="emotes"; state.search=""; state.highlight=0;
     $("#btfw-emotes-search").value = "";
+    pop?._btfwSyncSearchClear?.();
     // activate correct tab styling
     pop.querySelectorAll(".btfw-tab").forEach(b=>b.classList.toggle("is-active", b.getAttribute("data-tab")==="emotes"));
+    motion.openPopover(pop);
     positionPopover(true);            // compute fixed height once per open
-    pop.classList.remove("hidden");
     render(true);
     focusGrid();
   }
 
-  function close(){ $("#btfw-emotes-pop")?.classList.add("hidden"); }
+  function close(){
+    const pop = $("#btfw-emotes-pop");
+    if (pop) motion.closePopover(pop);
+  }
 
   function boot(){
     removeLegacyButtons();
     ensureOurButton();
     bindAnyExistingOpeners();
     watchPosition();
-    // NO warm-up emoji fetch; loads on first Emoji tab open
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
