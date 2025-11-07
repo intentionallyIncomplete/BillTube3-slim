@@ -73,12 +73,14 @@ const bundles = [
       'modules/feature-gifs.js',
       'modules/feature-poll-overlay.js',
       'modules/feature-notify.js',
+      'modules/feature-notification-sounds.js',
       'modules/feature-sync-guard.js',
       'modules/feature-local-subs.js',
       'modules/feature-billcast.js',
       'modules/feature-billcaster.js',
       'modules/feature-overlays.js',
-      'modules/feature-userlist-overlay.js'
+      'modules/feature-userlist-overlay.js',
+      'modules/feature-ratings.js'
     ]
   }
 ];
