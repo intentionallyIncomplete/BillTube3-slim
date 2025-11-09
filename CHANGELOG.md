@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.0.0...v1.0.1) (2025-11-09)
+
+
+### Bug Fixes
+
+* simplify CDN loader and fix fallback URL (closes [#11](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/11)) ([4bf7bd8](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/4bf7bd81009831599bede670d5009597618fbbbb))
+
 # 1.0.0 (2025-11-09)
 
 
