@@ -1,5 +1,5 @@
 /*! BillTube Framework — v3.4f */
-const DEV_CDN = "https://cdn.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-slim@dev";
+const DEV_CDN = "https://cdn.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-slim@latest";
 
 (function(){
   var Registry = Object.create(null);
