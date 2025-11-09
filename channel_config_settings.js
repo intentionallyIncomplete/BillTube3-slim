@@ -42,27 +42,15 @@ window.BTFW_THEME_ADMIN = {
   
   // BTFW_LOADER_SENTINEL
   (function (W, D) {
-    // Configurable bits
     var CDN_BASE = "https://cdn.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-slim";
     var FILE = "billtube-fw.js";
-    var VERSION = "dev-001";
-    var DEV_NOCACHE = false;
-    var DEV_MODE = true;
-    
-    // Expose DEV_MODE globally for billtube-fw.js to check
-    W.DEV_MODE = DEV_MODE;
   
     // Already loaded/applied? bail.
     if (W.BTFW && W.BTFW.init) { console.debug("[BTFW] already present; skip"); return; }
     if (D.querySelector('script[data-btfw-loader]')) { console.debug("[BTFW] loader tag exists; skip"); return; }
     if (D.getElementById("btfw-grid")) { console.debug("[BTFW] layout present; skip"); return; }
   
-    var stamp = DEV_NOCACHE ? ("&t=" + Date.now()) : "";
-    if (DEV_MODE) {
-      var primary = CDN_BASE + "@dev/" + FILE + "?v=" + encodeURIComponent(VERSION) + stamp;
-    } else {
-      primary = CDN_BASE + "@main/" + FILE + "?v=" + encodeURIComponent(VERSION) + stamp;
-    }
+    var primary = CDN_BASE + "@latest/" + FILE;
   
     function inject(src, attr) {
       var s = D.createElement("script");
@@ -77,9 +65,9 @@ window.BTFW_THEME_ADMIN = {
     // Primary load
     var tag = inject(primary);
   
-    // Fallback to rawcdn.githack if jsDelivr fails
+    // Fallback to raw.githack.com if jsDelivr fails
     tag.onerror = function () {
       console.warn("[BTFW] primary failed, trying fallback");
-      inject("https://raw.githack.com/intentionallyIncomplete/BillTube3-slim/refs/heads/dev/" + FILE + "?" + Date.now(), { "data-btfw-fallback": "1" });
+      inject("https://raw.githack.com/intentionallyIncomplete/BillTube3-slim/refs/heads/main/" + FILE + "?" + Date.now(), { "data-btfw-fallback": "1" });
     };
   })(window, document);
