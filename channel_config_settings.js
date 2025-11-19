@@ -1,3 +1,5 @@
+const CDN_BASE = "https://cdn.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-slim@latest";
+
 // BTFW_THEME_ADMIN_START
 window.BTFW_THEME_ADMIN = {
   "version": 6,
@@ -12,7 +14,7 @@ window.BTFW_THEME_ADMIN = {
   },
   "slider": {
     "enabled": true,
-    "feedUrl": "https://cdn.jsdelivr.net/gh/IntentionallyIncomplete/BadMovieCytube@latest/channels.json"
+    "feedUrl": CDN_BASE + "/channels.json"
   },
   "typography": {
     "preset": "nunito",
@@ -28,10 +30,10 @@ window.BTFW_THEME_ADMIN = {
     "scripts": [],
     "styles": [],
     "modules": [
-      "https://dl.dropbox.com/scl/fi/wg1bii426nkcfo4b7ch70/audioboost_module.js?rlkey=7jbcv6s56vh5s17vz1070cbaq&dl=0",
-      "https://dl.dropbox.com/scl/fi/a9psx3wce0ea2d5bq4h12/movie_info_module.js?rlkey=w6b5ngc2ahd92gv483jfoi6ix&dl=0",
-      "https://dl.dropbox.com/scl/fi/okc1i0pgew93zfzdjb4o1/movie_suggestion_module.js?rlkey=a2he954g5w3dvkupoeedhz1m9&dl=0",
-      "https://dl.dropbox.com/scl/fi/q72lsam25mkzb5mnrtn6m/autosubs_module.js?rlkey=fppgxw5a11zb5binpljo8k93o&dl=0"
+      CDN_BASE + "/modules/audio_boost.js",
+      CDN_BASE + "/modules/movie_info.js",
+      CDN_BASE + "/modules/movie_suggestions.js",
+      CDN_BASE + "/modules/auto_subs.js"
     ]
   },
   "branding": {
@@ -42,7 +44,6 @@ window.BTFW_THEME_ADMIN = {
 
 // BTFW_LOADER_SENTINEL
 (function (W, D) {
-  var CDN_BASE = "https://cdn.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-slim";
   var FILE = "billtube-fw.js";
 
   // Already loaded/applied? bail.

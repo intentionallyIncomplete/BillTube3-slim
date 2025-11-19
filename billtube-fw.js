@@ -231,7 +231,6 @@ const DEV_CDN = "https://cdn.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-s
     preload(DEV_CDN + "/css/mobile.css"),
     preload(DEV_CDN + "/css/boot-overlay.css")
   ]).then(function () {
-    // Load bundled modules - 6 optimized bundles instead of 38+ individual files
     var bundles = [
       "dist/core.bundle.js",
       "dist/chat.bundle.js",
@@ -288,7 +287,11 @@ const DEV_CDN = "https://cdn.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-s
       BTFW.init("feature:videoEnhancements"),
       BTFW.init("feature:channelThemeAdmin"),
       BTFW.init("feature:themeSettings"),
-      BTFW.init("feature:ratings")
+      BTFW.init("feature:ratings"),
+      BTFW.init("feature:audio-boost"),
+      BTFW.init("feature:auto-subs"),
+      BTFW.init("feature:movie-info"),
+      BTFW.init("feature:movie-suggestions")
     ];
     return Promise.all(inits);
   }).then(function () {
