@@ -261,7 +261,7 @@ const DEV_CDN = "https://cdn.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-s
       BTFW.init("feature:chat-tools"),
       BTFW.init("feature:chat-filters"),
       BTFW.init("feature:chat-username-colors"),
-      BTFW.init("feature:emotes"),
+      BTFW.init("feature:emotes"),  
       BTFW.init("feature:chatMedia"),
       BTFW.init("feature:emoji-compat"),
       BTFW.init("feature:chat-avatars"),
