@@ -5,11 +5,9 @@
   "type": "module",
   "scripts": {
     "prepare": "husky install",
-    "lint-staged": "lint-staged",
-    "lint": "eslint . --ext .js,.css,.md,.json",
+    "lint-staged": "eslint . --ext .js,.css,.md,.json",
     "lint:fix": "npm run lint:js -- --fix && npm run lint:css -- --fix",
     "build": "node scripts/build.js",
-    "build:watch": "node scripts/build.js --watch",
     "purge-cdn": "curl -s -X GET \"https://purge.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-slim@dev/channel_config_settings.js\" && echo \"✓ CDN cache purged\""
   },
   "repository": {
@@ -33,9 +31,6 @@
     "@semantic-release/github": "^11.0.6",
     "@semantic-release/release-notes-generator": "^14.1.0",
     "semantic-release": "^24.2.9"
-  },
-  "lint-staged": {
-    "*": "npm run lint"
   },
   "release": {
     "branches": [

@@ -132,7 +132,6 @@ function repositionOpenPopins(){
     helper(em, { widthPx: 560, widthVw: 92, maxHpx: 480, maxHvh: 70 });
   }
 
-  // Chat Tools (modal active -> position its card)
   const ctCard = document.querySelector("#btfw-ct-modal .btfw-ct-card[data-btfw-popover-state=\"open\"]");
   if (ctCard) {
     helper(ctCard, { widthPx: 420, widthVw: 92, maxHpx: 360, maxHvh: 60 });
