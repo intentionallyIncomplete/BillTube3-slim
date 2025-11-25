@@ -1,4 +1,3 @@
-/*! BillTube Framework — v3.4f */
 const DEV_CDN = "https://cdn.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-slim@latest";
 
 (function () {
