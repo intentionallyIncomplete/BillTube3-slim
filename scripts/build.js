@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { minify } from "terser";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const isWatch = process.argv.includes('--watch');
+const distDir = path.join(__dirname, "..", "dist");
+if (!fs.existsSync(distDir)) {
+  fs.mkdirSync(distDir, { recursive: true });
+}
 
 // Bundle configurations - logically grouped modules
 const bundles = [
@@ -89,91 +93,37 @@ const bundles = [
   }
 ];
 
-// Build output directory
-const distDir = path.join(__dirname, '..', 'dist');
-if (!fs.existsSync(distDir)) {
-  fs.mkdirSync(distDir, { recursive: true });
-}
+async function buildBundle(bundle) {
+  const rootDir = path.join(__dirname, "..");
+  let code = `/*! BillTube ${bundle.name} bundle */\n`;
 
-// Simple concatenation and minification
-function minifyJS(code) {
-  // Basic minification: remove block comments and collapse whitespace
-  // Note: We skip line comment removal to avoid breaking URLs (https://)
-  let result = code;
-  
-  // Remove block comments (/* ... */)
-  result = result.replace(/\/\*[\s\S]*?\*\//g, '');
-  
-  // Collapse whitespace
-  result = result.replace(/\s+/g, ' ');
-  
-  // Remove space around punctuation
-  result = result.replace(/\s*([{};,:])\s*/g, '$1');
-  
-  return result.trim();
-}
-
-function buildBundle(bundle) {
-  const rootDir = path.join(__dirname, '..');
-  const parts = [`/*! BillTube ${bundle.name} bundle */`];
-  
   for (const modulePath of bundle.modules) {
     const fullPath = path.join(rootDir, modulePath);
-    
     if (!fs.existsSync(fullPath)) {
       console.warn(`⚠ Skipping missing module: ${modulePath}`);
       continue;
     }
-    
-    const code = fs.readFileSync(fullPath, 'utf-8');
-    parts.push(`\n/* ${modulePath} */`);
-    parts.push(code);
+    code += `\n/* ${modulePath} */\n` + fs.readFileSync(fullPath, "utf8");
   }
-  
-  const combined = parts.join('\n');
-  const minified = minifyJS(combined);
-  
-  const outPath = path.join(distDir, `${bundle.name}.bundle.js`);
-  fs.writeFileSync(outPath, minified, 'utf-8');
-  
-  const originalSize = combined.length;
-  const minifiedSize = minified.length;
-  const savings = ((1 - minifiedSize / originalSize) * 100).toFixed(1);
-  
-  console.log(`✓ Built ${bundle.name}.bundle.js (${(minifiedSize / 1024).toFixed(1)}KB, ${savings}% smaller)`);
-}
 
-function build() {
-  console.log('🔨 Building BillTube modules...\n');
-  
-  for (const bundle of bundles) {
-    try {
-      buildBundle(bundle);
-    } catch (err) {
-      console.error(`✗ Failed to build ${bundle.name}:`, err.message);
-      process.exit(1);
-    }
-  }
-  
-  console.log('\n✨ Build complete!');
-}
-
-// Watch mode
-if (isWatch) {
-  console.log('👀 Watching for changes...\n');
-  
-  build();
-  
-  const rootDir = path.join(__dirname, '..');
-  const modulesDir = path.join(rootDir, 'modules');
-  
-  fs.watch(modulesDir, { recursive: false }, (eventType, filename) => {
-    if (filename && filename.endsWith('.js')) {
-      console.log(`\n📝 Change detected in ${filename}, rebuilding...`);
-      build();
+  // Pass combined code to Terser for minification
+  const result = await minify(code, {
+    compress: true,
+    mangle: true,
+    format: {
+      comments: false
     }
   });
-} else {
-  build();
+
+  const outPath = path.join(distDir, `${bundle.name}.bundle.js`);
+  fs.writeFileSync(outPath, result.code, "utf-8");
+  console.log(`✓ Built ${bundle.name}.bundle.js (${(result.code.length / 1024).toFixed(1)}KB)`);
 }
 
+(async function build() {
+  console.log("🔨 Building BillTube bundles with Terser...\n");
+  for (const bundle of bundles) {
+    await buildBundle(bundle);
+  }
+  console.log("\n✨ Build complete!");
+})();

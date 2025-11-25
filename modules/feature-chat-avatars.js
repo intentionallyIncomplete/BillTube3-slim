@@ -1,14 +1,3 @@
-/* BTFW — feature:chat-avatars (PERFORMANCE OPTIMIZED)
-   - Injects avatar before .username in each chat message
-   - Source order: profile image from userlist data() → CyTube avatar (if available) → colored initials SVG fallback
-   - Compacts consecutive messages from same user (no repeated avatar; reduced top margin)
-   - Respects --btfw-avatar-size (set by avatars-bridge or your avatar settings)
-   
-   PERFORMANCE ENHANCEMENTS:
-   - Caches generated SVG data URLs to avoid redundant base64 encoding
-   - Uses loading="lazy" and decoding="async" for better LCP
-   - Adds content-visibility for off-screen rendering optimization
-*/
 BTFW.define("feature:chat-avatars", [], async () => {
   const $  = (s,r=document)=>r.querySelector(s);
   const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -16,9 +5,8 @@ BTFW.define("feature:chat-avatars", [], async () => {
   const AVATAR_URL_CACHE_KEY = `${AVATAR_KEY}:urls:v1`;
   const AVATAR_URL_CACHE_LIMIT = 200;
 
-  // ⚡ PERFORMANCE: Cache for generated SVG data URLs
   const avatarCache = new Map();
-  const MAX_CACHE_SIZE = 200; // Limit cache to prevent memory bloat
+  const MAX_CACHE_SIZE = 200;
   const avatarUrlStore = loadAvatarUrlCache();
   let avatarUrlCachePersistTimer = null;
   let avatarUrlCacheDirty = false;
@@ -113,7 +101,6 @@ BTFW.define("feature:chat-avatars", [], async () => {
     }
   }
 
-  // Try BillTube2-style: jQuery data('profile').image from userlist
   function getProfileImgFromUserlist(name){
     try {
       const li = findUserlistItem(name);
@@ -225,7 +212,6 @@ BTFW.define("feature:chat-avatars", [], async () => {
 
     const px = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--btfw-avatar-size").trim() || "24px", 10) || 24;
 
-    // Already has our avatar? ensure it has metadata + handlers
     const existingImg = msgEl.querySelector(".btfw-chat-avatar");
     if (existingImg) {
       const key = cacheKey(name);
@@ -247,7 +233,6 @@ BTFW.define("feature:chat-avatars", [], async () => {
       return;
     }
 
-    // pick image
     const key = cacheKey(name);
     const cachedUrl = getCachedAvatarUrlByKey(key);
     const liveUrl = getProfileImgFromUserlist(name) || getCyTubeAvatarMaybe(name);
@@ -262,7 +247,6 @@ BTFW.define("feature:chat-avatars", [], async () => {
         setCachedAvatarUrl(name, liveUrl);
       }
     } else if (cachedUrl) {
-      // Use cached URL when user isn't active
       chosenSrc = cachedUrl;
       setCachedAvatarUrl(name, cachedUrl);
     }
@@ -281,17 +265,14 @@ BTFW.define("feature:chat-avatars", [], async () => {
       type: sourceType
     });
 
-    // ⚡ PERFORMANCE: Native browser optimizations
-    // Note: No explicit width/height set - CSS variables handle sizing dynamically
-    img.loading = "lazy";     // Defer loading of off-screen images
-    img.decoding = "async";   // Don't block rendering while decoding
+    img.loading = "lazy";
+    img.decoding = "async";
 
     if (!img._btfwAvatarErrorBound) {
       img.addEventListener("error", handleAvatarError);
       img._btfwAvatarErrorBound = true;
     }
 
-    // insert before username
     const wrap = document.createElement("span");
     wrap.className = "btfw-chat-avatarwrap";
     wrap.appendChild(img);
@@ -435,7 +416,6 @@ BTFW.define("feature:chat-avatars", [], async () => {
     reflow: reflowAll,
     setMode,
     getMode,
-    // ⚡ PERFORMANCE: Expose cache stats for debugging
     getCacheStats: () => ({
       svgCacheSize: avatarCache.size,
       svgCacheMaxSize: MAX_CACHE_SIZE,
