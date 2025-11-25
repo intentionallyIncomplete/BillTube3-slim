@@ -1,4 +1,4 @@
-const CDN_BASE = "https://cdn.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-slim@latest";
+const CDN_BASE = "https://cdn.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-slim";
 
 // BTFW_THEME_ADMIN_START
 window.BTFW_THEME_ADMIN = {
@@ -30,10 +30,10 @@ window.BTFW_THEME_ADMIN = {
     "scripts": [],
     "styles": [],
     "modules": [
-      CDN_BASE + "/modules/audio_boost.js",
-      CDN_BASE + "/modules/movie_info.js",
-      CDN_BASE + "/modules/movie_suggestions.js",
-      CDN_BASE + "/modules/auto_subs.js"
+      CDN_BASE + "@latest" + "/modules/audio_boost.js",
+      CDN_BASE + "@latest" + "/modules/movie_info.js",
+      CDN_BASE + "@latest" + "/modules/movie_suggestions.js",
+      CDN_BASE + "@latest" + "/modules/auto_subs.js"
     ]
   },
   "branding": {
