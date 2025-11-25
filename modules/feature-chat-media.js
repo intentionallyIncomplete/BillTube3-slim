@@ -1,10 +1,3 @@
-/* BTFW — feature:chatMedia (runtime-resize + dropdown support, stable)
-   - Tags Giphy/Tenor chat images as .channel-emote
-   - Emote/GIF size: small(100) / medium(130) / big(170)  [persisted]
-   - GIF autoplay: ON (default) or hover-to-play          [persisted]
-   - ChildList-only observer (no attribute loops)
-   - Forces size on existing images at runtime (removes width/height attrs and applies CSS var inline with !important)
-*/
 BTFW.define("feature:chatMedia", [], async () => {
   const $  = (s,r=document)=>r.querySelector(s);
   const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));

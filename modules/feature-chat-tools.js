@@ -95,52 +95,118 @@ BTFW.define("feature:chat-tools", ["feature:chat"], async ({ init }) => {
       cw.appendChild(modal);
     }
 
-    modal.innerHTML = `
-      <div class="btfw-ct-card">
-        <div class="btfw-ct-cardhead">
-          <span>Chat Tools</span>
-          <button class="btfw-ct-close" aria-label="Close">&times;</button>
-        </div>
+   modal.textContent = "";
 
-        <div class="btfw-ct-body">
-          <!-- BBCode grid -->
-          <div class="btfw-ct-grid">
-            <button class="btfw-ct-item" data-tag="b"><strong>B</strong><span>Bold</span></button>
-            <button class="btfw-ct-item" data-tag="i"><em>I</em><span>Italic</span></button>
-            <button class="btfw-ct-item" data-tag="u"><u>U</u><span>Underline</span></button>
-            <button class="btfw-ct-item" data-tag="s"><span style="text-decoration:line-through">S</span><span>Strike</span></button>
-            <button class="btfw-ct-item" data-tag="sp"><span>🙈</span><span>Spoiler</span></button>
-          </div>
+    const modalCard = document.createElement("div");
+    modalCard.className = "btfw-ct-card";
 
-          <!-- Color tools -->
-          <div class="btfw-ct-color">
-            <label class="btfw-ct-keep">
-              <input type="checkbox" id="btfw-ct-keepcolor"> Keep color
-            </label>
-            <div class="btfw-ct-swatch" id="btfw-ct-swatch"></div>
+    const cardHead = document.createElement("div");
+    cardHead.className = "btfw-ct-cardhead";
+    const title = document.createElement("span");
+    title.textContent = "Chat Tools";
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "btfw-ct-close";
+    closeBtn.setAttribute("aria-label", "Close");
+    closeBtn.innerHTML = "&times;";
 
-            <div class="btfw-ct-hexrow" style="display:flex; gap:6px; align-items:center; margin-top:6px;">
-              <input id="btfw-ct-hex" type="text" placeholder="#rrggbb" maxlength="7" class="input is-small" style="max-width:120px;" />
-              <button id="btfw-ct-insertcolor" class="button is-small">Insert</button>
-              <button id="btfw-ct-clearcolor" class="button is-small">Clear Keep</button>
-            </div>
-          </div>
+    cardHead.appendChild(title);
+    cardHead.appendChild(closeBtn);
+    modalCard.appendChild(cardHead);
 
-          <!-- Actions -->
-          <div class="btfw-ct-actions" style="display:flex; gap:6px; margin-top:8px;">
-            <button class="btfw-ct-item button is-small" data-act="clear">Clear</button>
-            <button class="btfw-ct-item button is-small" data-act="afk">AFK</button>
-          </div>
-        </div>
-      </div>
-    `;
+    const cardBody = document.createElement("div");
+    cardBody.className = "btfw-ct-body";
 
-    // container inert; only the card is interactive
+    const grid = document.createElement("div");
+    grid.className = "btfw-ct-grid";
+
+    [
+      { tag: "b", html: "<strong>B</strong><span>Bold</span>" },
+      { tag: "i", html: "<em>I</em><span>Italic</span>" },
+      { tag: "u", html: "<u>U</u><span>Underline</span>" },
+      { tag: "s", html: '<span style="text-decoration:line-through">S</span><span>Strike</span>' },
+      { tag: "sp", html: "<span>🙈</span><span>Spoiler</span>" }
+    ].forEach(({ tag, html }) => {
+      const btn = document.createElement("button");
+      btn.className = "btfw-ct-item";
+      btn.setAttribute("data-tag", tag);
+      btn.innerHTML = html;
+      grid.appendChild(btn);
+    });
+    cardBody.appendChild(grid);
+
+    const colorDiv = document.createElement("div");
+    colorDiv.className = "btfw-ct-color";
+
+    const keepLabel = document.createElement("label");
+    keepLabel.className = "btfw-ct-keep";
+    const keepBox = document.createElement("input");
+    keepBox.type = "checkbox";
+    keepBox.id = "btfw-ct-keepcolor";
+    keepLabel.appendChild(keepBox);
+    keepLabel.appendChild(document.createTextNode(" Keep color"));
+    colorDiv.appendChild(keepLabel);
+
+    const swatch = document.createElement("div");
+    swatch.className = "btfw-ct-swatch";
+    swatch.id = "btfw-ct-swatch";
+    colorDiv.appendChild(swatch);
+
+    const hexRow = document.createElement("div");
+    hexRow.className = "btfw-ct-hexrow";
+    hexRow.style.display = "flex";
+    hexRow.style.gap = "6px";
+    hexRow.style.alignItems = "center";
+    hexRow.style.marginTop = "6px";
+
+    const hexInput = document.createElement("input");
+    hexInput.id = "btfw-ct-hex";
+    hexInput.type = "text";
+    hexInput.placeholder = "#rrggbb";
+    hexInput.maxLength = 7;
+    hexInput.className = "input is-small";
+    hexInput.style.maxWidth = "120px";
+
+    const insertBtn = document.createElement("button");
+    insertBtn.id = "btfw-ct-insertcolor";
+    insertBtn.className = "button is-small";
+    insertBtn.textContent = "Insert";
+    const clearBtn = document.createElement("button");
+    clearBtn.id = "btfw-ct-clearcolor";
+    clearBtn.className = "button is-small";
+    clearBtn.textContent = "Clear Keep";
+
+    hexRow.appendChild(hexInput);
+    hexRow.appendChild(insertBtn);
+    hexRow.appendChild(clearBtn);
+    colorDiv.appendChild(hexRow);
+
+    cardBody.appendChild(colorDiv);
+
+    const actions = document.createElement("div");
+    actions.className = "btfw-ct-actions";
+    actions.style.display = "flex";
+    actions.style.gap = "6px";
+    actions.style.marginTop = "8px";
+
+    [
+      { act: "clear", text: "Clear" },
+      { act: "afk", text: "AFK" }
+    ].forEach(({ act, text }) => {
+      const btn = document.createElement("button");
+      btn.className = "btfw-ct-item button is-small";
+      btn.setAttribute("data-act", act);
+      btn.textContent = text;
+      actions.appendChild(btn);
+    });
+    cardBody.appendChild(actions);
+
+    modalCard.appendChild(cardBody);
+    modal.appendChild(modalCard);
+
     modal.style.background = "transparent";
     modal.style.pointerEvents = "none";
 
-    // sync UI to stored stick color now
-    (function syncKeepColorUI(){
+    (function syncKeepColorUI() {
       const keep = $("#btfw-ct-keepcolor");
       const hexEl = $("#btfw-ct-hex");
       const stored = (getStickColor && getStickColor()) || "";
@@ -171,12 +237,11 @@ BTFW.define("feature:chat-tools", ["feature:chat"], async ({ init }) => {
     return modal;
   }
 
-  function openMiniModal(){
+  function openMiniModal() {
     const m = ensureMiniModal(); if (!m) return;
 
-    // Sync Keep + Hex with stored value so UI matches the current state
-    (function syncKeepColorUI(){
-      const keep  = document.getElementById("btfw-ct-keepcolor");
+    (function syncKeepColorUI() {
+      const keep = document.getElementById("btfw-ct-keepcolor");
       const hexEl = document.getElementById("btfw-ct-hex");
       const stored = (typeof getStickColor === "function" && getStickColor()) || "";
       if (keep) keep.checked = !!stored;
@@ -191,7 +256,7 @@ BTFW.define("feature:chat-tools", ["feature:chat"], async ({ init }) => {
     if (card) motion.openPopover(card);
   }
 
-  function closeMiniModal(){
+  function closeMiniModal() {
     const m = $("#btfw-ct-modal");
     if (!m) return;
     const card = m.querySelector(".btfw-ct-card");
@@ -207,7 +272,7 @@ BTFW.define("feature:chat-tools", ["feature:chat"], async ({ init }) => {
     });
   }
 
-  function positionMiniModal(){
+  function positionMiniModal() {
     const m = document.getElementById("btfw-ct-modal"); if (!m) return;
     const card = m.querySelector(".btfw-ct-card"); if (!card) return;
 
@@ -222,19 +287,19 @@ BTFW.define("feature:chat-tools", ["feature:chat"], async ({ init }) => {
     }
 
     const c = (document.getElementById("chatcontrols")
-          || document.getElementById("chat-controls")
-          || (document.getElementById("chatline") && document.getElementById("chatline").parentElement));
+      || document.getElementById("chat-controls")
+      || (document.getElementById("chatline") && document.getElementById("chatline").parentElement));
     if (!c) return;
 
     const bottom = (c.offsetHeight || 48) + 12;
     card.style.position = "fixed";
-    card.style.right    = "8px";
-    card.style.bottom   = bottom + "px";
+    card.style.right = "8px";
+    card.style.bottom = bottom + "px";
     card.style.maxHeight = "60vh";
-    card.style.width     = "min(420px,92vw)";
+    card.style.width = "min(420px,92vw)";
   }
 
-  function ensureActionsButton(){
+  function ensureActionsButton() {
     const actions = $("#chatwrap .btfw-chat-bottombar #btfw-chat-actions");
     if (!actions) return;
 
@@ -250,21 +315,21 @@ BTFW.define("feature:chat-tools", ["feature:chat"], async ({ init }) => {
     actions.insertBefore(b, insertBefore || null);
   }
 
-  function getHist(){ try{ return JSON.parse(localStorage.getItem(LS.hist)||"[]"); }catch(e){ return []; } }
-  function setHist(a){ try{ localStorage.setItem(LS.hist, JSON.stringify(a.slice(-50))); }catch(e){} }
+  function getHist() { try { return JSON.parse(localStorage.getItem(LS.hist) || "[]"); } catch (e) { return []; } }
+  function setHist(a) { try { localStorage.setItem(LS.hist, JSON.stringify(a.slice(-50))); } catch (e) { } }
   let histIndex = -1;
-  function commitToHist(text){
+  function commitToHist(text) {
     if (!text) return;
     const h = getHist();
-    if (h[h.length-1] !== text) { h.push(text); setHist(h); }
+    if (h[h.length - 1] !== text) { h.push(text); setHist(h); }
     histIndex = -1;
   }
-  function histUpDown(dir){
+  function histUpDown(dir) {
     const l = chatline(); if (!l) return;
     const h = getHist(); if (!h.length) return;
     if (histIndex === -1) histIndex = h.length;
-    histIndex += (dir<0 ? -1 : +1);
-    histIndex = Math.max(0, Math.min(h.length-1, histIndex));
+    histIndex += (dir < 0 ? -1 : +1);
+    histIndex = Math.max(0, Math.min(h.length - 1, histIndex));
     l.value = h[histIndex] || "";
     l.focus(); l.setSelectionRange(l.value.length, l.value.length);
   }

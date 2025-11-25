@@ -1,7 +1,3 @@
-/* BTFW — feature:chat-timestamps
-   - Show/Hide timestamps
-   - 12h / 24h formatting (best-effort transformation of [HH:MM] or [H:MM AM/PM])
-*/
 BTFW.define("feature:chat-timestamps", [], async () => {
   const $  = (s,r=document)=>r.querySelector(s);
   const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));

@@ -1,8 +1,3 @@
-/* BTFW — feature:chat-ignore (OPTIMIZED)
-   - Saved mute list (localStorage)
-   - Adds "Mute/Unmute" action on userlist entries
-   - Hides messages from muted users using socket events + WeakSet tracking
-*/
 BTFW.define("feature:chat-ignore", [], async () => {
   const $ = (s, r = document) => r.querySelector(s);
   const LS = "btfw:chat:ignore";
