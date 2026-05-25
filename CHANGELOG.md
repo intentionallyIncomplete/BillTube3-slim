@@ -1,3 +1,13 @@
+## [1.0.2](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.0.1...v1.0.2) (2026-05-25)
+
+
+### Bug Fixes
+
+* fix release versioning by enforcing commit message formatting ([ae5fd90](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/ae5fd903ead240900e48b2041b9effb4a0d0711f))
+* issue[#22](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/22) ([e401e0c](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/e401e0c266b0549f3c84a57cc8059db410ba2dc0))
+* issue[#22](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/22) ([9ace909](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/9ace90984df955b139aa3cfa1556b975a7184d35))
+* issue[#22](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/22) ([6b01ae1](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/6b01ae190c4a642987456f350d559b7d0bc7dca7))
+
 ## [1.0.1](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.0.0...v1.0.1) (2025-11-09)
 
 
