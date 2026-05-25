@@ -40,19 +40,18 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
 
+          # Check if file exists
           if [ ! -f channel_config_settings.js ]; then
-          echo "Warning: channel_config_settings.js not found"
-          exit 0
+            echo "Warning: channel_config_settings.js not found"
+            exit 0
           fi
 
-          # Reset any previously baked-in version back to the placeholder
-          sed -i "s|@[0-9]\+\.[0-9]\+\.[0-9]\+|@__VERSION__|g" channel_config_settings.js
-
-          # Now inject the real version
+          # Apply the sed replacement
           sed -i "s|@__VERSION__|@${VERSION}|g" channel_config_settings.js
 
+          # Only commit if there are changes
           if git diff --quiet channel_config_settings.js; then
-            echo "No changes to commit - already at version ${VERSION}"
+            echo "No changes to commit - file already contains version ${VERSION}"
           else
             git config user.email "ci@github.com"
             git config user.name "GitHub Actions"
