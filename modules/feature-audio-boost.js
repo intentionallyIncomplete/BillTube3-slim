@@ -454,15 +454,15 @@
 (function() {
   'use strict';
 
-  function waitForBTFW(callback) {
+  function whenBTFWReady(callback) {
     if (window.BTFW && typeof BTFW.define === 'function') {
       callback();
     } else {
-      setTimeout(() => waitForBTFW(callback), 100);
+      setTimeout(() => whenBTFWReady(callback), 0);
     }
   }
 
-  waitForBTFW(function() {
+  whenBTFWReady(function() {
     BTFW.define("feature:audioboost", [], async () => {
       const $ = (selector, root = document) => root.querySelector(selector);
       const sharedAudio = window.BTFW_AUDIO;
@@ -766,9 +766,8 @@
       };
     });
 
-    if (window.BTFW && typeof BTFW.init === 'function') {
-      BTFW.init("feature:audioboost").catch(() => {});
-    }
+    // v1.0.x billtube-fw used a mismatched module id
+    BTFW.define("feature:audio-boost", ["feature:audioboost"], async (ctx) => ctx.init("feature:audioboost"));
   });
 })();
 
@@ -776,15 +775,15 @@
 (function() {
   'use strict';
 
-  function waitForBTFW(callback) {
+  function whenBTFWReady(callback) {
     if (window.BTFW && typeof BTFW.define === 'function') {
       callback();
     } else {
-      setTimeout(() => waitForBTFW(callback), 100);
+      setTimeout(() => whenBTFWReady(callback), 0);
     }
   }
 
-  waitForBTFW(function() {
+  whenBTFWReady(function() {
     BTFW.define("feature:audionorm", [], async () => {
       const $ = (selector, root = document) => root.querySelector(selector);
       const sharedAudio = window.BTFW_AUDIO;
@@ -1076,9 +1075,5 @@
         isActive: () => sharedAudio.normalizationEnabled
       };
     });
-
-    if (window.BTFW && typeof BTFW.init === 'function') {
-      BTFW.init("feature:audionorm").catch(() => {});
-    }
   });
 })();
