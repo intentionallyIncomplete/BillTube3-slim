@@ -36,17 +36,30 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
-
       - name: Inject CDN Version
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          sed -i "s|@__VERSION__|@${VERSION}|g" channel_config_settings.js
-          git config user.email "ci@github.com"
-          git config user.name "GitHub Actions"
-          git add channel_config_settings.js
-          git commit -m "chore: pin CDN to v${VERSION} [skip ci]"
-          git push
 
+          if [ ! -f channel_config_settings.js ]; then
+          echo "Warning: channel_config_settings.js not found"
+          exit 0
+          fi
+
+          # Reset any previously baked-in version back to the placeholder
+          sed -i "s|@[0-9]\+\.[0-9]\+\.[0-9]\+|@__VERSION__|g" channel_config_settings.js
+
+          # Now inject the real version
+          sed -i "s|@__VERSION__|@${VERSION}|g" channel_config_settings.js
+
+          if git diff --quiet channel_config_settings.js; then
+            echo "No changes to commit - already at version ${VERSION}"
+          else
+            git config user.email "ci@github.com"
+            git config user.name "GitHub Actions"
+            git add channel_config_settings.js
+            git commit -m "chore: pin CDN to v${VERSION} [skip ci]"
+            git push
+          fi
       - name: Run Semantic Release
         run: npx semantic-release
         env:
