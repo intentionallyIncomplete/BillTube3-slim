@@ -1,4 +1,13 @@
-const DEV_CDN = "https://cdn.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-slim@latest";
+const DEV_CDN = (function () {
+  var scripts = document.getElementsByTagName("script");
+  for (var i = scripts.length - 1; i >= 0; i--) {
+    var src = scripts[i].src || "";
+    if (!/billtube-fw\.js(?:\?|$)/.test(src)) continue;
+    var m = src.match(/^(https:\/\/cdn\.jsdelivr\.net\/gh\/[^/]+\/[^/]+@[^/]+)/);
+    if (m) return m[1];
+  }
+  return "https://cdn.jsdelivr.net/gh/intentionallyIncomplete/BillTube3-slim@latest";
+})();
 
 (function () {
   var Registry = Object.create(null);
