@@ -1,6 +1,6 @@
 {
   "name": "billtube3-slim",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Modular UI enhancement framework for CyTube",
   "type": "module",
   "scripts": {
@@ -50,15 +50,42 @@
         {
           "preset": "angular",
           "releaseRules": [
-            { "breaking": true, "release": "major" },
-            { "type": "feat", "release": "minor" },
-            { "type": "fix", "release": "patch" },
-            { "type": "perf", "release": "patch" },
-            { "type": "refactor", "release": "patch" },
-            { "type": "build", "release": "patch" },
-            { "type": "revert", "release": "patch" },
-            { "revert": true, "release": "patch" },
-            { "scope": "no-release", "release": false }
+            {
+              "breaking": true,
+              "release": "major"
+            },
+            {
+              "type": "feat",
+              "release": "minor"
+            },
+            {
+              "type": "fix",
+              "release": "patch"
+            },
+            {
+              "type": "perf",
+              "release": "patch"
+            },
+            {
+              "type": "refactor",
+              "release": "patch"
+            },
+            {
+              "type": "build",
+              "release": "patch"
+            },
+            {
+              "type": "revert",
+              "release": "patch"
+            },
+            {
+              "revert": true,
+              "release": "patch"
+            },
+            {
+              "scope": "no-release",
+              "release": false
+            }
           ]
         }
       ],
