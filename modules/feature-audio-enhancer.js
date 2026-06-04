@@ -62,6 +62,25 @@ BTFW.define("feature:audioEnhancer", [], async () => {
       return this.boostEnabled || this.normalizationEnabled;
     },
 
+    _getMediaElement() {
+      const tech = this.player?.tech_;
+      if (tech) {
+        try {
+          const fromElFn = typeof tech.el === "function" ? tech.el() : null;
+          if (fromElFn instanceof HTMLMediaElement && fromElFn.isConnected) return fromElFn;
+        } catch (_) {}
+        if (tech.el_ instanceof HTMLMediaElement && tech.el_.isConnected) return tech.el_;
+      }
+      const fallback = document.querySelector("#ytapiplayer video, #videowrap .video-js .vjs-tech");
+      if (fallback instanceof HTMLMediaElement && fallback.isConnected) return fallback;
+      return null;
+    },
+
+    _hasIframeOnlyMedia() {
+      if (this._getMediaElement()) return false;
+      return Boolean(document.querySelector("#ytapiplayer iframe"));
+    },
+
     disconnectChain() {
       if (this.sourceNode) {
         try { this.sourceNode.disconnect(); }
@@ -89,8 +108,9 @@ BTFW.define("feature:audioEnhancer", [], async () => {
 
       this.sourceNode = null;
 
-      if (this.player && this.player.tech_ && this.player.tech_.el_) {
-        this.player.tech_.el_.disableRemotePlayback = false;
+      const mediaEl = this._getMediaElement();
+      if (mediaEl) {
+        mediaEl.disableRemotePlayback = false;
       }
 
       this.stopWatchdog();
@@ -100,7 +120,7 @@ BTFW.define("feature:audioEnhancer", [], async () => {
       if (!this.player) return;
       this.stopWatchdog();
 
-      const videoEl = this.player.tech_?.el?.() || this.player.tech_?.el_ || document.querySelector("#ytapiplayer video");
+      const videoEl = this._getMediaElement();
 
       if (videoEl && typeof MutationObserver !== "undefined") {
         this._mutationObserver = new MutationObserver(() => {
@@ -222,7 +242,7 @@ BTFW.define("feature:audioEnhancer", [], async () => {
     },
 
     async rebuildAudioChain() {
-      if (!this.player || !this.player.tech_ || !this.player.tech_.el_) {
+      if (!this.player) {
         console.error("[audio-enhancer] Player not ready");
         return false;
       }
@@ -233,15 +253,18 @@ BTFW.define("feature:audioEnhancer", [], async () => {
 
       this.disconnectChain();
 
+      const videoEl = this._getMediaElement();
+      if (!videoEl) {
+        console.error("[audio-enhancer] No HTMLMediaElement for Web Audio");
+        return false;
+      }
+
       try {
         if (!this.audioContext || this.audioContext.state === "closed") {
           this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        const videoEl = this.player.tech().el();
-        if (this.player.tech_ && this.player.tech_.el_) {
-          this.player.tech_.el_.disableRemotePlayback = true;
-        }
+        videoEl.disableRemotePlayback = true;
 
         if (!this.sourceNode) {
           this.sourceNode = this.audioContext.createMediaElementSource(videoEl);
@@ -502,7 +525,10 @@ BTFW.define("feature:audioEnhancer", [], async () => {
         color: "#2ed573"
       });
     } else {
-      showToast("btfw-audio-boost-toast", "Failed to activate boost", "error");
+      const msg = sharedAudio._hasIframeOnlyMedia()
+        ? "Audio boost requires direct video playback"
+        : "Failed to activate boost";
+      showToast("btfw-audio-boost-toast", msg, "error");
     }
   }
 
@@ -528,7 +554,10 @@ BTFW.define("feature:audioEnhancer", [], async () => {
         color: "#3498db"
       });
     } else {
-      showToast("btfw-audio-norm-toast", "Failed to activate", "error");
+      const msg = sharedAudio._hasIframeOnlyMedia()
+        ? "Audio normalization requires direct video playback"
+        : "Failed to activate";
+      showToast("btfw-audio-norm-toast", msg, "error");
     }
   }
 

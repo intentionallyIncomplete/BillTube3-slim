@@ -73,6 +73,25 @@
       return String(a || '') === String(b || '');
     },
 
+    _getMediaElement() {
+      const tech = this.player?.tech_;
+      if (tech) {
+        try {
+          const fromElFn = typeof tech.el === 'function' ? tech.el() : null;
+          if (fromElFn instanceof HTMLMediaElement && fromElFn.isConnected) return fromElFn;
+        } catch (_) {}
+        if (tech.el_ instanceof HTMLMediaElement && tech.el_.isConnected) return tech.el_;
+      }
+      const fallback = document.querySelector('#ytapiplayer video, #videowrap .video-js .vjs-tech');
+      if (fallback instanceof HTMLMediaElement && fallback.isConnected) return fallback;
+      return null;
+    },
+
+    _hasIframeOnlyMedia() {
+      if (this._getMediaElement()) return false;
+      return Boolean(document.querySelector('#ytapiplayer iframe'));
+    },
+
     disconnectChain() {
       if (this.sourceNode) {
         try { this.sourceNode.disconnect(); } catch (_) {}
@@ -97,8 +116,9 @@
 
       this.sourceNode = null;
 
-      if (this.player && this.player.tech_ && this.player.tech_.el_) {
-        this.player.tech_.el_.disableRemotePlayback = false;
+      const mediaEl = this._getMediaElement();
+      if (mediaEl) {
+        mediaEl.disableRemotePlayback = false;
       }
 
       this.stopWatchdog();
@@ -110,7 +130,7 @@
       if (!this.player) return;
       this.stopWatchdog();
 
-      const videoEl = this.player.tech_?.el?.() || this.player.tech_?.el_ || document.querySelector('#ytapiplayer video');
+      const videoEl = this._getMediaElement();
 
       // Mutation observer for attribute/src/source changes
       if (videoEl && typeof MutationObserver !== 'undefined') {
@@ -276,7 +296,7 @@
     },
 
     async rebuildAudioChain() {
-      if (!this.player || !this.player.tech_ || !this.player.tech_.el_) {
+      if (!this.player) {
         console.error('[BTFW_AUDIO] Player not ready');
         return false;
       }
@@ -292,15 +312,18 @@
 
       this.disconnectChain();
 
+      const videoEl = this._getMediaElement();
+      if (!videoEl) {
+        console.error('[BTFW_AUDIO] No HTMLMediaElement for Web Audio');
+        return false;
+      }
+
       try {
         if (!this.audioContext || this.audioContext.state === 'closed') {
           this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        const videoEl = this.player.tech().el();
-        if (this.player.tech_ && this.player.tech_.el_) {
-          this.player.tech_.el_.disableRemotePlayback = true;
-        }
+        videoEl.disableRemotePlayback = true;
 
         if (!this.sourceNode) {
           this.sourceNode = this.audioContext.createMediaElementSource(videoEl);
@@ -534,7 +557,10 @@
           showToast(`Boosted by ${percentage}%`, 'success');
           updateButtonState(true);
         } else {
-          showToast('Failed to activate boost', 'error');
+          const msg = sharedAudio._hasIframeOnlyMedia()
+            ? 'Audio boost requires direct video playback'
+            : 'Failed to activate boost';
+          showToast(msg, 'error');
         }
       }
 
@@ -848,7 +874,10 @@
           showToast('Normalization enabled', 'success');
           updateButtonState(true);
         } else {
-          showToast('Failed to activate', 'error');
+          const msg = sharedAudio._hasIframeOnlyMedia()
+            ? 'Audio normalization requires direct video playback'
+            : 'Failed to activate';
+          showToast(msg, 'error');
         }
       }
 
