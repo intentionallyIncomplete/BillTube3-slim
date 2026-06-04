@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.1.1...v1.2.0) (2026-06-04)
+
+
+### Features
+
+* **ui:** rebrand User Preferences General and hydrate Recent Updates ([#46](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/46)) ([e6daffe](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/e6daffe3c34eca6ff49a1ee19670902938b38844))
+
 ## [1.1.1](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.1.0...v1.1.1) (2026-06-04)
 
 
