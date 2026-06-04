@@ -49,6 +49,7 @@ const bundles = [
       'modules/feature-pip.js',
       'modules/feature-resize.js',
       'modules/feature-audio-boost.js',
+      'modules/feature-audio-enhancer.js',
       'modules/feature-auto-subs.js',
       'modules/feature-movie-info.js',
       'modules/feature-movie-suggestions.js'
