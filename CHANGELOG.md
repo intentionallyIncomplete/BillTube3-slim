@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.2.1...v1.3.0) (2026-06-08)
+
+
+### Features
+
+* **ui:** polish stack, polls, video toolbar, and now playing ([#50](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/50)) ([ef5f589](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/ef5f5893983eb4b63557c884b81e944436a3505d))
+
 ## [1.2.1](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.2.0...v1.2.1) (2026-06-04)
 
 
