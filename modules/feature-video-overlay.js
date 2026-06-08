@@ -131,22 +131,20 @@ BTFW.define("feature:videoOverlay", [], async () => {
     st.id = "btfw-vo-css";
     st.textContent = `
       #btfw-video-overlay{
-        position:absolute;
-        inset:0;
-        pointer-events:none;
-        z-index: 1000;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.15) 12%, rgba(0, 0, 0, 0) 32%, rgba(0, 0, 0, 0) 55%, transparent 75%);
-      }
-
-      #btfw-video-overlay.btfw-vo-visible {
+        position: static;
+        display: block;
+        width: 100%;
+        pointer-events: auto;
         opacity: 1;
+        margin: 8px 0 4px;
       }
 
       #btfw-video-overlay .btfw-vo-bar{
-        position:absolute; right:12px; top:12px; left:12px; display:flex; gap:8px; pointer-events:auto;
-        background:transparent;
+        position: static;
+        display: flex;
+        gap: 8px;
+        pointer-events: auto;
+        background: transparent;
       }
 
       #btfw-video-overlay .btfw-vo-section {
@@ -258,9 +256,6 @@ BTFW.define("feature:videoOverlay", [], async () => {
 
       @media (max-width: 768px) {
         #btfw-video-overlay .btfw-vo-bar {
-          top: 8px;
-          right: 8px;
-          left: 8px;
           gap: 6px;
         }
 
@@ -281,6 +276,15 @@ BTFW.define("feature:videoOverlay", [], async () => {
     document.head.appendChild(st);
   }
 
+  function mountOverlayToolbar(overlay) {
+    const wrap = $("#videowrap");
+    if (!wrap || !overlay) return;
+    if (overlay.parentElement !== wrap.parentElement || overlay.previousElementSibling !== wrap) {
+      wrap.insertAdjacentElement("afterend", overlay);
+    }
+    overlay.classList.add("btfw-vo-visible");
+  }
+
   function ensureOverlay() {
     const wrap = $("#videowrap");
     if (!wrap) return null;
@@ -291,7 +295,7 @@ BTFW.define("feature:videoOverlay", [], async () => {
       overlay.id = "btfw-video-overlay";
     }
     overlay.classList.add("btfw-video-overlay");
-    if (overlay.parentElement !== wrap) wrap.appendChild(overlay);
+    mountOverlayToolbar(overlay);
 
     let bar = overlay.querySelector("#btfw-vo-bar");
     if (!bar) {
@@ -303,7 +307,6 @@ BTFW.define("feature:videoOverlay", [], async () => {
 
     const sections = ensureOverlaySections(overlay, bar);
 
-    setupHoverEffects(wrap, overlay);
     ensureLocalSubsButton(sections.left);
     ensureCustomButtons(sections);
     adoptNativeControls(sections);
@@ -417,41 +420,9 @@ BTFW.define("feature:videoOverlay", [], async () => {
     bindAirplayAvailability(video);
   }
 
-  function setupHoverEffects(videowrap, overlay) {
-    if (overlay._hoverSetup) return;
-    overlay._hoverSetup = true;
-
-    let hideTimer = null;
-
-    function showOverlay() {
-      clearTimeout(hideTimer);
-      overlay.classList.add("btfw-vo-visible");
-      overlay.style.pointerEvents = "none";
-    }
-
-    function hideOverlay() {
-      overlay.classList.remove("btfw-vo-visible");
-    }
-
-    function scheduleHide() {
-      clearTimeout(hideTimer);
-      hideTimer = setTimeout(hideOverlay, 3000);
-    }
-
-    videowrap.addEventListener("mouseenter", showOverlay);
-    videowrap.addEventListener("mousemove", () => {
-      showOverlay();
-      scheduleHide();
-    });
-
-    videowrap.addEventListener("mouseleave", hideOverlay);
-
-    overlay.addEventListener("mouseenter", () => {
-      clearTimeout(hideTimer);
-      showOverlay();
-    });
-
-    overlay.addEventListener("mouseleave", scheduleHide);
+  function setupHoverEffects(_videowrap, overlay) {
+    if (!overlay) return;
+    overlay.classList.add("btfw-vo-visible");
   }
 
   function ensureCustomButtons(sections) {

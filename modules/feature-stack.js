@@ -1,7 +1,25 @@
 BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
   const SKEY="btfw-stack-order";
   const PLAYLIST_VISIBILITY_KEY = "btfw-stack-playlist-open";
-  let compactSpacing = true;
+  const POLL_VISIBILITY_KEY = "btfw-stack-poll-open";
+
+  let pollSyncTimer = null;
+  let pollObserverWired = false;
+  let pollSocketWired = false;
+
+  function hasPollContent(doc = document) {
+    if (!doc || typeof doc.querySelector !== "function") return false;
+    return !!(
+      doc.querySelector("#pollwrap .well.active") ||
+      doc.querySelector("#pollwrap .well.muted") ||
+      doc.querySelector("#pollwrap .poll-menu")
+    );
+  }
+
+  function getDefaultPollOpen(stored, hasContent) {
+    if (stored !== null && stored !== undefined) return !!stored;
+    return !!hasContent;
+  }
   
   // Define what should be grouped together
   const GROUPS = [
@@ -195,16 +213,6 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
   }
 
   
-  function applyCompactSpacing(enabled){
-    const stack = document.getElementById("btfw-stack");
-    if (!stack) return;
-    const want = !!enabled;
-    stack.classList.toggle("btfw-stack--compact", want);
-    stack.querySelectorAll(".btfw-stack-list").forEach(list => {
-      list.classList.toggle("btfw-stack-list--compact", want);
-    });
-  }
-
   function ensureStack(){
     const left=document.getElementById("btfw-leftpad");
     if(!left) return null;
@@ -214,8 +222,12 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
       stack.id="btfw-stack";
       stack.className="btfw-stack";
       const v=document.getElementById("videowrap");
-      if(v&&v.nextSibling) v.parentNode.insertBefore(stack, v.nextSibling);
-      else left.appendChild(stack);
+      const overlay=document.getElementById("btfw-video-overlay");
+      const anchor=(overlay && v && overlay.parentElement===v.parentElement) ? overlay : v;
+      if(anchor && anchor.parentElement) {
+        if(anchor.nextSibling) anchor.parentNode.insertBefore(stack, anchor.nextSibling);
+        else anchor.parentNode.appendChild(stack);
+      } else left.appendChild(stack);
 
       // Just create the list - no header with "Page Modules"
       const list=document.createElement("div");
@@ -226,7 +238,6 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
       footer.className="btfw-stack-footer";
       stack.appendChild(footer);
     }
-    applyCompactSpacing(compactSpacing);
     return {
       list:stack.querySelector(".btfw-stack-list"),
       footer:stack.querySelector("#btfw-stack-footer")
@@ -534,68 +545,25 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
     wrapper.appendChild(body);
 
     if (group.id === "playlist-group") {
-      const storedVisibility = getStoredPlaylistVisibility();
+      attachStackVisibilityToggle(wrapper, {
+        storageKey: PLAYLIST_VISIBILITY_KEY,
+        getDefaultOpen: (stored) => getDefaultPollOpen(stored, true),
+        toggleClass: "btfw-playlist-toggle",
+        ariaLabel: "Toggle playlist visibility",
+        openTitle: "Hide playlist (improves performance)",
+        closeTitle: "Show playlist"
+      });
+    }
 
-      if (!wrapper.hasAttribute("data-open")) {
-        const shouldOpen = storedVisibility !== null ? storedVisibility : true;
-        wrapper.dataset.open = shouldOpen ? "true" : "false";
-      }
-
-      wrapper.classList.toggle("is-open", wrapper.dataset.open !== "false");
-
-      const arrows = header.querySelector(".btfw-stack-arrows");
-      if (arrows && !arrows.querySelector(".btfw-playlist-toggle")) {
-        const toggleBtn = document.createElement("button");
-        toggleBtn.type = "button";
-        toggleBtn.className = "btfw-arrow btfw-playlist-toggle";
-        toggleBtn.setAttribute("aria-label", "Toggle playlist visibility");
-        toggleBtn.style.display = "flex";
-        toggleBtn.style.alignItems = "center";
-        toggleBtn.style.justifyContent = "center";
-
-        const updateToggle = () => {
-          const isOpen = wrapper.dataset.open !== "false";
-          toggleBtn.textContent = isOpen ? "👁️" : "👁️‍🗨️";
-          toggleBtn.title = isOpen ? "Hide playlist (improves performance)" : "Show playlist";
-          toggleBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
-          wrapper.classList.toggle("is-open", isOpen);
-        };
-
-        const setOpenState = (open, options = {}) => {
-          const isOpen = !!open;
-          wrapper.dataset.open = isOpen ? "true" : "false";
-          updateToggle();
-          if (options.persist !== false) {
-            storePlaylistVisibility(isOpen);
-          }
-        };
-
-        toggleBtn.addEventListener("click", (ev) => {
-          ev.preventDefault();
-          ev.stopPropagation();
-          const currentlyOpen = wrapper.dataset.open !== "false";
-          setOpenState(!currentlyOpen);
-          console.log("[Playlist Toggle]", currentlyOpen ? "Collapsed" : "Expanded");
-        });
-
-        if (storedVisibility !== null) {
-          setOpenState(storedVisibility, { persist: false });
-        } else {
-          updateToggle();
-        }
-
-        const observer = new MutationObserver((mutations) => {
-          for (const mutation of mutations) {
-            if (mutation.type === "attributes") {
-              updateToggle();
-              storePlaylistVisibility(wrapper.dataset.open !== "false");
-            }
-          }
-        });
-        observer.observe(wrapper, { attributes: true, attributeFilter: ["data-open"] });
-
-        arrows.appendChild(toggleBtn);
-      }
+    if (group.id === "poll-group") {
+      attachStackVisibilityToggle(wrapper, {
+        storageKey: POLL_VISIBILITY_KEY,
+        getDefaultOpen: (stored) => getDefaultPollOpen(stored, hasPollContent()),
+        toggleClass: "btfw-poll-toggle",
+        ariaLabel: "Toggle poll panel visibility",
+        openTitle: "Hide poll panel",
+        closeTitle: "Show poll panel"
+      });
     }
 
     // Wire up/down buttons
@@ -634,9 +602,9 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
     }
   }
 
-  function getStoredPlaylistVisibility(){
+  function getStoredVisibility(key){
     try{
-      const stored = localStorage.getItem(PLAYLIST_VISIBILITY_KEY);
+      const stored = localStorage.getItem(key);
       if (stored === null) return null;
       return stored === "true";
     }catch(e){
@@ -644,10 +612,171 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
     }
   }
 
-  function storePlaylistVisibility(isOpen){
+  function storeVisibility(key, isOpen){
     try{
-      localStorage.setItem(PLAYLIST_VISIBILITY_KEY, isOpen ? "true" : "false");
+      localStorage.setItem(key, isOpen ? "true" : "false");
     }catch(e){}
+  }
+
+  function getStoredPlaylistVisibility(){
+    return getStoredVisibility(PLAYLIST_VISIBILITY_KEY);
+  }
+
+  function storePlaylistVisibility(isOpen){
+    storeVisibility(PLAYLIST_VISIBILITY_KEY, isOpen);
+  }
+
+  function getStoredPollVisibility(){
+    return getStoredVisibility(POLL_VISIBILITY_KEY);
+  }
+
+  function storePollVisibility(isOpen){
+    storeVisibility(POLL_VISIBILITY_KEY, isOpen);
+  }
+
+  function attachStackVisibilityToggle(wrapper, options = {}) {
+    const {
+      storageKey,
+      getDefaultOpen,
+      toggleClass,
+      ariaLabel = "Toggle panel visibility",
+      openTitle = "Hide panel",
+      closeTitle = "Show panel"
+    } = options;
+
+    const stored = getStoredVisibility(storageKey);
+    const defaultOpen = typeof getDefaultOpen === "function"
+      ? getDefaultOpen(stored)
+      : (stored !== null ? stored : true);
+
+    if (!wrapper.hasAttribute("data-open")) {
+      wrapper.dataset.open = defaultOpen ? "true" : "false";
+    }
+
+    wrapper.classList.toggle("is-open", wrapper.dataset.open !== "false");
+
+    const header = wrapper.querySelector(".btfw-stack-item__header");
+    const arrows = header && header.querySelector(".btfw-stack-arrows");
+    if (!arrows || arrows.querySelector(`.${toggleClass}`)) return;
+
+    const toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.className = `btfw-arrow ${toggleClass}`;
+    toggleBtn.setAttribute("aria-label", ariaLabel);
+    toggleBtn.style.display = "flex";
+    toggleBtn.style.alignItems = "center";
+    toggleBtn.style.justifyContent = "center";
+
+    const updateToggle = () => {
+      const isOpen = wrapper.dataset.open !== "false";
+      toggleBtn.textContent = isOpen ? "👁️" : "👁️‍🗨️";
+      toggleBtn.title = isOpen ? openTitle : closeTitle;
+      toggleBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      wrapper.classList.toggle("is-open", isOpen);
+    };
+
+    const setOpenState = (open, opts = {}) => {
+      const isOpen = !!open;
+      wrapper.dataset.open = isOpen ? "true" : "false";
+      updateToggle();
+      if (opts.persist !== false) {
+        storeVisibility(storageKey, isOpen);
+      }
+    };
+
+    toggleBtn.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      setOpenState(wrapper.dataset.open === "false");
+    });
+
+    updateToggle();
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === "attributes") {
+          updateToggle();
+          storeVisibility(storageKey, wrapper.dataset.open !== "false");
+        }
+      }
+    });
+    observer.observe(wrapper, { attributes: true, attributeFilter: ["data-open"] });
+
+    arrows.appendChild(toggleBtn);
+    wrapper._btfwSetOpenState = setOpenState;
+  }
+
+  function restorePollWrapFromGroup() {
+    const pollGroup = document.querySelector('.btfw-stack-item[data-bind="poll-group"]');
+    if (!pollGroup) return;
+    const pollWrap = document.getElementById("pollwrap");
+    const leftInner = document.querySelector("#leftpane-inner") || document.getElementById("btfw-leftpad");
+    if (pollWrap && leftInner && pollGroup.contains(pollWrap)) {
+      leftInner.appendChild(pollWrap);
+    }
+    pollGroup.remove();
+  }
+
+  function syncPollPanelVisibility(refs, options = {}) {
+    const content = hasPollContent();
+    const pollGroup = document.querySelector('.btfw-stack-item[data-bind="poll-group"]');
+
+    if (!content) {
+      restorePollWrapFromGroup();
+      return;
+    }
+
+    if (!pollGroup && refs) {
+      populate(refs);
+    }
+
+    const group = document.querySelector('.btfw-stack-item[data-bind="poll-group"]');
+    if (!group) return;
+
+    group.hidden = false;
+    group.removeAttribute("hidden");
+
+    if (options.forceOpen && group._btfwSetOpenState) {
+      group._btfwSetOpenState(true, { persist: false });
+    } else if (options.forceOpen) {
+      group.dataset.open = "true";
+      group.classList.add("is-open");
+    }
+  }
+
+  function schedulePollSync(refs, options = {}) {
+    if (pollSyncTimer) clearTimeout(pollSyncTimer);
+    pollSyncTimer = setTimeout(() => {
+      pollSyncTimer = null;
+      syncPollPanelVisibility(refs, options);
+    }, 50);
+  }
+
+  function wirePollObservers(refs) {
+    if (pollObserverWired) return;
+    const pollWrap = document.getElementById("pollwrap");
+    if (!pollWrap) return;
+    pollObserverWired = true;
+
+    const observer = new MutationObserver(() => {
+      schedulePollSync(refs, { forceOpen: hasPollContent() });
+    });
+    observer.observe(pollWrap, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+
+    const newPollBtn = document.getElementById("newpollbtn");
+    if (newPollBtn && !newPollBtn.dataset.btfwPollSync) {
+      newPollBtn.dataset.btfwPollSync = "1";
+      newPollBtn.addEventListener("click", () => {
+        schedulePollSync(refs, { forceOpen: true });
+      });
+    }
+  }
+
+  function wirePollSocket(refs) {
+    if (pollSocketWired || !window.socket || !window.socket.on) return;
+    pollSocketWired = true;
+    window.socket.on("newPoll", () => schedulePollSync(refs, { forceOpen: true }));
+    window.socket.on("closePoll", () => schedulePollSync(refs));
   }
   
   function attachFooter(footer){
@@ -712,6 +841,10 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
     
     // Process groups with better safety checks
     GROUPS.forEach(group => {
+      if (group.id === "poll-group" && !hasPollContent()) {
+        restorePollWrapFromGroup();
+        return;
+      }
       const elements = [];
       group.selectors.forEach(sel => {
         const el = document.querySelector(sel);
@@ -777,24 +910,16 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
       }
     });
     
-    applyCompactSpacing(compactSpacing);
     save(list);
     attachFooter(footer);
-  }
-
-  function setCompactSpacing(enabled){
-    compactSpacing = !!enabled;
-    applyCompactSpacing(compactSpacing);
-  }
-
-  function getCompactSpacing(){
-    return compactSpacing;
   }
 
  function boot(){
   const refs=ensureStack();
   if(!refs) return;
   populate(refs);
+  wirePollObservers(refs);
+  wirePollSocket(refs);
     const observer=new MutationObserver(()=>populate(refs));
     const leftpad = document.getElementById('btfw-leftpad');
   const main = document.getElementById('main');
@@ -807,13 +932,22 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
   }
   setTimeout(() => {
     const playlistGroup = document.querySelector('.btfw-stack-item[data-bind="playlist-group"]');
-    if (!playlistGroup) return;
+    if (playlistGroup) {
+      const storedVisibility = getStoredPlaylistVisibility();
+      const shouldBeOpen = storedVisibility !== null ? storedVisibility : true;
+      playlistGroup.dataset.open = shouldBeOpen ? 'true' : 'false';
+      playlistGroup.classList.toggle('is-open', shouldBeOpen);
+    }
 
-    const storedVisibility = getStoredPlaylistVisibility();
-    const shouldBeOpen = storedVisibility !== null ? storedVisibility : true;
+    const pollGroup = document.querySelector('.btfw-stack-item[data-bind="poll-group"]');
+    if (pollGroup) {
+      const storedPoll = getStoredPollVisibility();
+      const shouldPollOpen = getDefaultPollOpen(storedPoll, hasPollContent());
+      pollGroup.dataset.open = shouldPollOpen ? 'true' : 'false';
+      pollGroup.classList.toggle('is-open', shouldPollOpen);
+    }
 
-    playlistGroup.dataset.open = shouldBeOpen ? 'true' : 'false';
-    playlistGroup.classList.toggle('is-open', shouldBeOpen);
+    syncPollPanelVisibility(refs);
   }, 1000);
   let n=0;
   const iv=setInterval(()=>{
@@ -831,21 +965,8 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
       setTimeout(() => populate(refs), 100);
     }
   });
-  
-  document.addEventListener("btfw:layout:orientation", () => {
-    requestAnimationFrame(() => applyCompactSpacing(compactSpacing));
-  });
-  document.addEventListener("btfw:stack:compactChanged", (ev) => {
-    if (ev && ev.detail && "enabled" in ev.detail) {
-      setCompactSpacing(!!ev.detail.enabled);
-    } else {
-      applyCompactSpacing(compactSpacing);
-    }
-  });
 
   return {
-    name:"feature:stack",
-    setCompactSpacing,
-    getCompactSpacing
+    name:"feature:stack"
   };
 });

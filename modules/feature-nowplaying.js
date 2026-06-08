@@ -128,6 +128,43 @@ BTFW.define("feature:nowplaying", [], async () => {
     }
   }
 
+  function measureTitleOverflow(outer, inner) {
+    if (!outer || !inner) return false;
+    const overflows = inner.scrollWidth > outer.clientWidth;
+    outer.classList.toggle("is-overflowing", overflows);
+    if (overflows) {
+      const distance = inner.scrollWidth - outer.clientWidth;
+      outer.style.setProperty("--scroll-distance", `${distance}px`);
+      const duration = Math.max(4, Math.min(20, distance / 24));
+      outer.style.setProperty("--scroll-duration", `${duration}s`);
+      const label = inner.textContent || outer.getAttribute("title") || "";
+      if (label) outer.setAttribute("aria-label", label);
+    } else {
+      outer.style.setProperty("--scroll-distance", "0px");
+      outer.removeAttribute("aria-label");
+    }
+    return overflows;
+  }
+
+  function ensureTitleInner(ct) {
+    let inner = ct.querySelector(".btfw-nowplaying__text");
+    if (!inner) {
+      inner = document.createElement("span");
+      inner.className = "btfw-nowplaying__text";
+      const existing = (ct.textContent || "").trim();
+      ct.textContent = "";
+      inner.textContent = existing;
+      ct.appendChild(inner);
+    }
+    return inner;
+  }
+
+  function scheduleOverflowMeasure(ct) {
+    if (!ct) return;
+    const inner = ensureTitleInner(ct);
+    requestAnimationFrame(() => measureTitleOverflow(ct, inner));
+  }
+
   function stripPrefix(t) {
     return String(t || "")
       .replace(/^\s*(?:currently|now)\s*playing\s*[:\-]\s*/i, "")
@@ -162,6 +199,9 @@ BTFW.define("feature:nowplaying", [], async () => {
     const ct = document.createElement("span");
     ct.id = "currenttitle";
     ct.className = "btfw-nowplaying";
+    const inner = document.createElement("span");
+    inner.className = "btfw-nowplaying__text";
+    ct.appendChild(inner);
     return ct;
   }
 
@@ -181,6 +221,7 @@ BTFW.define("feature:nowplaying", [], async () => {
       }
       slot.appendChild(ct);
       ct.classList.add("btfw-nowplaying");
+      ensureTitleInner(ct);
       if (state.lastLookupInfo) {
         applyLookupMetadata(state.lastLookupInfo, { skipEvent: true });
       }
@@ -212,15 +253,18 @@ BTFW.define("feature:nowplaying", [], async () => {
     const currentText = stripPrefix(ct.textContent || "");
     
     if (currentText !== cleanTitle || options.force) {
-      ct.textContent = cleanTitle;
+      const inner = ensureTitleInner(ct);
+      inner.textContent = cleanTitle;
       const lookupInfo = deriveLookupInfo(cleanTitle);
       ct.title = lookupInfo.canonical || cleanTitle;
       ct.style.setProperty("--length", String(cleanTitle.length));
       state.lastCleanTitle = cleanTitle;
       applyLookupMetadata(lookupInfo);
+      scheduleOverflowMeasure(ct);
       return true;
     }
 
+    scheduleOverflowMeasure(ct);
     return false;
   }
 
@@ -357,6 +401,18 @@ BTFW.define("feature:nowplaying", [], async () => {
     document.addEventListener('btfw:ready', () => {
       setTimeout(requestMediaInfo, 500);
     });
+
+    if (!document._btfwNpResizeObs) {
+      const slot = ensureSlot();
+      if (slot && typeof ResizeObserver !== "undefined") {
+        const ro = new ResizeObserver(() => {
+          const ct = findCurrentTitle();
+          if (ct) scheduleOverflowMeasure(ct);
+        });
+        ro.observe(slot);
+        document._btfwNpResizeObs = ro;
+      }
+    }
 
     [500, 1500].forEach(delay => {
       setTimeout(() => {

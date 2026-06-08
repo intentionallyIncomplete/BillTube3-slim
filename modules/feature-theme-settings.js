@@ -10,7 +10,6 @@ BTFW.define("feature:themeSettings", [], async () => {
     emoteSize   : "btfw:chat:emoteSize",
     gifAutoplay : "btfw:chat:gifAutoplay",
     chatJoinNotices: "btfw:chat:joinNotices",
-    stackCompact: "btfw:stack:compact",
     localSubs   : "btfw:video:localsubs",
     billcastEnabled: "btfw:billcast:enabled",
     layoutSide  : "btfw:layout:chatSide"
@@ -54,13 +53,6 @@ BTFW.define("feature:themeSettings", [], async () => {
     document.dispatchEvent(new CustomEvent("btfw:chat:emoteSizeChanged", { detail:{ size, px } }));
   }
 
-  function applyCompactStack(enabled){
-    const active = !!enabled;
-    document.documentElement.classList.toggle("btfw-compact-stack", active);
-    if (stackModule?.setCompactSpacing) stackModule.setCompactSpacing(active);
-    else resolveStack().then(mod => { if (mod?.setCompactSpacing) mod.setCompactSpacing(active); });
-  }
-
   const moduleCache = new Map();
   function getModule(name){
     if (moduleCache.has(name)) return moduleCache.get(name);
@@ -72,7 +64,6 @@ BTFW.define("feature:themeSettings", [], async () => {
   }
 
   let avatarsModule = null;
-  let stackModule = null;
   let ignoreModule = null;
 
   function resolveAvatars(){
@@ -88,14 +79,6 @@ BTFW.define("feature:themeSettings", [], async () => {
   }
 
   resolveAvatars();
-  function resolveStack(){
-    if (stackModule) return Promise.resolve(stackModule);
-    return getModule("feature:stack").then(mod => {
-      if (mod) stackModule = mod;
-      return stackModule;
-    });
-  }
-  resolveStack();
 
   function resolveIgnore(){
     if (ignoreModule) return Promise.resolve(ignoreModule);
@@ -186,20 +169,7 @@ BTFW.define("feature:themeSettings", [], async () => {
             <!-- General -->
             <div class="btfw-ts-panel" data-tab="general" style="display:block;">
               <div class="btfw-ts-grid">
-                <section class="btfw-ts-card">
-                  <header class="btfw-ts-card__header">
-                    <h3>Stack layout</h3>
-                    <p>Give desktop stack modules a little more breathing room.</p>
-                  </header>
-                  <div class="btfw-ts-card__body">
-                    <button type="button" class="btfw-compact-stack-btn" id="btfw-compact-stack-toggle" aria-pressed="true">
-                      <span class="btfw-compact-stack-label">Compact stack</span>
-                      <span class="btfw-compact-stack-status">On</span>
-                    </button>
-                    <p class="btfw-help">Adds horizontal padding around <code>.btfw-stack-list</code> items whenever the desktop grid is active.</p>
-                  </div>
-                </section>
-
+                <p class="btfw-help">General appearance settings live in the channel theme editor.</p>
               </div>
             </div>
 
@@ -386,24 +356,6 @@ BTFW.define("feature:themeSettings", [], async () => {
       updateLabel(chatTextSlider.value || "14");
     }
 
-    const compactBtn = $("#btfw-compact-stack-toggle", m);
-    if (compactBtn && !compactBtn._btfwSync) {
-      const status = compactBtn.querySelector(".btfw-compact-stack-status");
-      const sync = (state) => {
-        const on = !!state;
-        compactBtn.setAttribute("aria-pressed", on ? "true" : "false");
-        compactBtn.classList.toggle("is-active", on);
-        if (status) status.textContent = on ? "On" : "Off";
-        compactBtn.dataset.state = on ? "on" : "off";
-      };
-      compactBtn.addEventListener("click", (ev) => {
-        ev.preventDefault();
-        const next = compactBtn.getAttribute("aria-pressed") !== "true";
-        sync(next);
-      });
-      compactBtn._btfwSync = sync;
-    }
-
     // Open via event
     document.addEventListener("btfw:openThemeSettings", open);
 
@@ -485,8 +437,6 @@ BTFW.define("feature:themeSettings", [], async () => {
     const emoteSize   = $("#btfw-emote-size", m)?.value   || "medium";
     const gifAutoOn   = $("#btfw-gif-autoplay", m)?.checked;
     const joinNoticesOn = $("#btfw-chat-join-notices", m)?.checked;
-    const compactBtn  = $("#btfw-compact-stack-toggle", m);
-    const compactOn   = compactBtn ? compactBtn.getAttribute("aria-pressed") === "true" : true;
     const localSubsOn = $("#btfw-localsubs-toggle", m)?.checked;
     const billcastOn  = $("#btfw-billcast-toggle", m)?.checked;
     const chatSide    = $("#btfw-chat-side", m)?.value || "right";
@@ -496,7 +446,6 @@ BTFW.define("feature:themeSettings", [], async () => {
     set(TS_KEYS.emoteSize, emoteSize);
     set(TS_KEYS.gifAutoplay, gifAutoOn ? "1":"0");
     set(TS_KEYS.chatJoinNotices, joinNoticesOn ? "1":"0");
-    set(TS_KEYS.stackCompact, compactOn ? "1":"0");
     set(TS_KEYS.localSubs,   localSubsOn ? "1":"0");
     set(TS_KEYS.billcastEnabled, billcastOn ? "1":"0");
     set(TS_KEYS.layoutSide, chatSide);
@@ -506,17 +455,15 @@ BTFW.define("feature:themeSettings", [], async () => {
 
     applyChatTextPx(parseInt(chatTextPx,10));
     applyEmoteSize(emoteSize);
-    applyCompactStack(compactOn);
 
     document.dispatchEvent(new CustomEvent("btfw:chat:gifAutoplayChanged", { detail:{ autoplay: !!gifAutoOn } }));
     document.dispatchEvent(new CustomEvent("btfw:chat:joinNoticesChanged", { detail:{ enabled: !!joinNoticesOn } }));
-    document.dispatchEvent(new CustomEvent("btfw:stack:compactChanged",    { detail:{ enabled : !!compactOn } }));
     document.dispatchEvent(new CustomEvent("btfw:video:localsubs:changed", { detail:{ enabled : !!localSubsOn } }));
     document.dispatchEvent(new CustomEvent("btfw:layout:chatSideChanged",   { detail:{ side    : chatSide } }));
     document.dispatchEvent(new CustomEvent("btfw:themeSettings:apply",     { detail:{
       values: {
         avatarsMode, chatTextPx: parseInt(chatTextPx,10),
-        emoteSize, gifAutoplay: !!gifAutoOn, compactStack: !!compactOn,
+        emoteSize, gifAutoplay: !!gifAutoOn,
         localSubs: !!localSubsOn, billcastEnabled: !!billcastOn,
         joinNotices: !!joinNoticesOn,
         chatSide
@@ -550,14 +497,6 @@ BTFW.define("feature:themeSettings", [], async () => {
     $("#btfw-chat-join-notices").checked = get(TS_KEYS.chatJoinNotices, "1") === "1";
     $("#btfw-localsubs-toggle").checked = get(TS_KEYS.localSubs, "1") === "1";
     const bc = $("#btfw-billcast-toggle"); if (bc) bc.checked = get(TS_KEYS.billcastEnabled, "1") === "1";
-    const compactStored = get(TS_KEYS.stackCompact, "1") === "1";
-    const compactBtn = $("#btfw-compact-stack-toggle", m);
-    if (compactBtn?._btfwSync) compactBtn._btfwSync(compactStored);
-    else if (compactBtn) {
-      compactBtn.setAttribute("aria-pressed", compactStored ? "true" : "false");
-      const status = compactBtn.querySelector(".btfw-compact-stack-status");
-      if (status) status.textContent = compactStored ? "On" : "Off";
-    }
     const layoutSelect = $("#btfw-chat-side", m);
     const sideNow = get(TS_KEYS.layoutSide, "right");
     if (layoutSelect) layoutSelect.value = ["left","right"].includes(sideNow) ? sideNow : "right";
@@ -743,7 +682,6 @@ BTFW.define("feature:themeSettings", [], async () => {
   function boot(){
     applyChatTextPx(parseInt(get(TS_KEYS.chatTextPx, "14"),10));
     applyEmoteSize(get(TS_KEYS.emoteSize,"medium"));
-    applyCompactStack(get(TS_KEYS.stackCompact, "1") === "1");
     wireOpeners();
     decorateUserOptions();
     bindUserOptions();

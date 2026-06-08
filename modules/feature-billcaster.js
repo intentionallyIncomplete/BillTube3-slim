@@ -48,9 +48,8 @@ $(document).ready(function () {
 
     var $vw = $('#videowrap');
     if ($vw.length) {
-      $o = $('<div id="btfw-video-overlay" class="btfw-video-overlay"></div>')
-        .css({ position: 'absolute', inset: 0, 'pointer-events': 'none' })
-        .appendTo($vw);
+      $o = $('<div id="btfw-video-overlay" class="btfw-video-overlay"></div>');
+      $vw.after($o);
       return $o;
     }
     return $();
@@ -62,19 +61,7 @@ $(document).ready(function () {
 
     var $ov = $overlay();
     if ($ov.length) {
-      $b = $('<div id="btfw-vo-bar" class="btfw-vo-bar"></div>')
-        .css({
-          position: 'absolute',
-          top: '8px',
-          right: '8px',
-          left: '8px',
-          display: 'flex',
-          'justify-content': 'space-between',
-          gap: '6px',
-          'pointer-events': 'none',
-          'z-index': 1000
-        })
-        .appendTo($ov);
+      $b = $('<div id="btfw-vo-bar" class="btfw-vo-bar"></div>').appendTo($ov);
       return $b;
     }
     return $();

@@ -450,7 +450,7 @@ addCommand("cast", async (ctx)=>{
       <div class="content">
         <p>Type these in chat. Some require moderator permissions.</p>
         <div class="table-container">
-          <table class="table is-fullwidth is-striped is-narrow">
+          <table class="table is-fullwidth is-narrow">
             <thead><tr><th>Command</th><th>Description</th><th>Usage</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
