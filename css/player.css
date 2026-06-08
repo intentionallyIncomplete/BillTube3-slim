@@ -463,12 +463,7 @@
   }
 }
 
-/* Video overlay buttons are styled in overlays.css; ensure interactivity */
-#videowrap .btfw-video-overlay{
-  pointer-events: none;
-  grid-area: 1 / 1;
-}
-#videowrap .btfw-video-overlay .btfw-vo-section{ pointer-events: auto; }
+/* Video overlay toolbar lives outside #videowrap (see overlays.css) */
 
 /* Space for modules stacked under the player */
 

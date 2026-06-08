@@ -67,22 +67,22 @@ body.btfw-mobile-nav-open{
     max-height: 90vh !important;
   }
 
-  /* Video overlay buttons: keep accessible spacing */
-  #videowrap .btfw-video-overlay .btfw-vo-bar{
-    top: 8px; left: 8px; right: 8px; gap: 8px;
+  /* Video overlay toolbar below player */
+  #btfw-video-overlay .btfw-vo-bar{
+    gap: 8px;
   }
-  #videowrap .btfw-video-overlay .btfw-vo-section{
+  #btfw-video-overlay .btfw-vo-section{
     gap: 6px;
   }
-  #videowrap .btfw-video-overlay .btfw-vo-btn,
-  #videowrap .btfw-video-overlay .btfw-vo-adopted{
+  #btfw-video-overlay .btfw-vo-btn,
+  #btfw-video-overlay .btfw-vo-adopted{
     min-width: 40px;
     height: 40px;
     border-radius: 20px;
   }
 
-  #videowrap .btfw-video-overlay .btfw-vo-btn i,
-  #videowrap .btfw-video-overlay .btfw-vo-adopted i{
+  #btfw-video-overlay .btfw-vo-btn i,
+  #btfw-video-overlay .btfw-vo-adopted i{
     font-size: 15px;
   }
 

@@ -178,11 +178,33 @@
 }
 
 #btfw-nowplaying-slot > .btfw-nowplaying{
+  display: block;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
+  min-width: 0;
+}
+
+#btfw-nowplaying-slot > .btfw-nowplaying .btfw-nowplaying__text{
+  display: inline-block;
+  white-space: nowrap;
+}
+
+#btfw-nowplaying-slot > .btfw-nowplaying.is-overflowing:hover .btfw-nowplaying__text{
+  animation: btfw-nowplaying-scroll var(--scroll-duration, 8s) linear infinite;
+}
+
+@keyframes btfw-nowplaying-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-1 * var(--scroll-distance, 0px))); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #btfw-nowplaying-slot > .btfw-nowplaying.is-overflowing:hover .btfw-nowplaying__text{
+    animation: none;
+  }
 }
 
 #btfw-mobile-modules-toggle{

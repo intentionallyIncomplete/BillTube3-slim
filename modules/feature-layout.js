@@ -124,9 +124,11 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
       const left = document.getElementById("btfw-leftpad");
       if (!left) return;
       const video = document.getElementById("videowrap");
-      if (video && video.parentElement === left) {
-        if (video.nextSibling !== stack) {
-          if (video.nextSibling) left.insertBefore(stack, video.nextSibling);
+      const overlay = document.getElementById("btfw-video-overlay");
+      const anchor = (overlay && overlay.parentElement === left) ? overlay : video;
+      if (anchor && anchor.parentElement === left) {
+        if (anchor.nextSibling !== stack) {
+          if (anchor.nextSibling) left.insertBefore(stack, anchor.nextSibling);
           else left.appendChild(stack);
         }
       } else if (stack.parentElement !== left) {
