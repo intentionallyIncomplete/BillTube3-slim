@@ -317,6 +317,14 @@
       ];
       return Promise.all(inits);
     }).then(function() {
+      return BTFW.init("feature:syncGuard").then(function(sg) {
+        return sg && sg.playbackResyncIfNeeded ? sg.playbackResyncIfNeeded() : Promise.resolve();
+      });
+    }).then(function() {
+      return BTFW.init("feature:layout").then(function(layout) {
+        return layout && layout.commitLayout ? layout.commitLayout() : Promise.resolve();
+      });
+    }).then(function() {
       console.log("[BTFW v3.4f] Ready.");
       document.dispatchEvent(new CustomEvent("btfw:ready", {
         detail: { version: "3.4f", timestamp: Date.now() }

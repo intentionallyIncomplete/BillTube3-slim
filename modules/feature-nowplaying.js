@@ -319,8 +319,7 @@ BTFW.define("feature:nowplaying", [], async () => {
   }
 
   function requestMediaInfo() {
-    // Don't request if we already have a title
-    if (state.lastCleanTitle) {
+    if (state.lastCleanTitle || window.BTFW && window.BTFW._playbackResyncDone) {
       return;
     }
     
@@ -392,15 +391,6 @@ BTFW.define("feature:nowplaying", [], async () => {
       obs.observe(document.body, { childList: true, subtree: true });
       document._btfwNpMoveObs = obs;
     }
-
-    // Request media info from server immediately and after delays
-    setTimeout(requestMediaInfo, 500);
-    setTimeout(requestMediaInfo, 2000);
-    
-    // Also request when theme is ready
-    document.addEventListener('btfw:ready', () => {
-      setTimeout(requestMediaInfo, 500);
-    });
 
     if (!document._btfwNpResizeObs) {
       const slot = ensureSlot();
