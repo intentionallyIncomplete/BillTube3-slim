@@ -1488,11 +1488,6 @@ BTFW.define("feature:ratings", [], async () => {
     wrapCallbacks();
 
     document.addEventListener("btfw:nowplayingLookup", handleLookupEvent, { passive: true });
-
-    const s = window.socket;
-    if (s && s.connected) {
-      try { s.emit("playerReady"); } catch {}
-    }
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", waitForEligibility);

@@ -395,29 +395,24 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
     document.dispatchEvent(new CustomEvent("btfw:layoutReady"));
   }
 
-  function init() {
+  function commitLayout() {
     ensureShell();
-    loadVideoColumnWidth();
-    chatSidePref = getStoredChatSide();
-    applyColumnTemplate();
-    setTop();
-    updateResponsiveLayout();
-
-    const finalizeLayout = () => {
+    const finalize = () => {
       setTop();
       makeResizable();
       finishLayout();
     };
-
-    setTimeout(finalizeLayout, 100);
-    setTimeout(finalizeLayout, 300);
-    setTimeout(finalizeLayout, 600);
-    
-    if (document.readyState === 'complete') {
-      finalizeLayout();
-    } else {
-      window.addEventListener('load', finalizeLayout);
+    finalize();
+    if (document.readyState !== 'complete') {
+      window.addEventListener('load', finalize, { once: true });
     }
+  }
+
+  function init() {
+    loadVideoColumnWidth();
+    chatSidePref = getStoredChatSide();
+    applyColumnTemplate();
+    setTop();
 
     const navbar = document.querySelector(".navbar, #nav-collapsible, #navbar, .navbar-fixed-top");
     if (navbar) {
@@ -488,18 +483,5 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
     init();
   }
 
-  return {name:"feature:layout"};
+  return {name:"feature:layout", commitLayout};
 });
-
-  function findNavbarElement(){
-    const selectors = [
-      "nav.navbar",
-      ".navbar-fixed-top",
-      "#navbar"
-    ];
-    for (const sel of selectors) {
-      const el = document.querySelector(sel);
-      if (el) return el;
-    }
-    return null;
-  }

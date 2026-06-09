@@ -237,7 +237,9 @@ BTFW.define("feature:player", ["feature:layout"], async ({}) => {
       ".vjs-tech [role=\"alert\"]",
       ".vjs-tech [role=\"dialog\"]",
       ".vjs-tech .modal",
-      ".vjs-tech .modal-dialog"
+      ".vjs-tech .modal-dialog",
+      ".vjs-big-play-button",
+      ".vjs-poster"
     ].join(",");
 
     if (target.closest(allowSelectors)) {
@@ -367,6 +369,7 @@ BTFW.define("feature:player", ["feature:layout"], async ({}) => {
     attachGuards,
     ensureInlinePlayback,
     applyPosterUrl,
-    togglePosterVisibility
+    togglePosterVisibility,
+    shouldAllowClick
   };
 });
