@@ -57,7 +57,67 @@ git diff
 git log -3 --oneline
 ```
 
-Never stage secrets (`.env`, keys). Match recent commit style (conventional: `feat:`, `fix:`, `chore:`).
+Never stage secrets (`.env`, keys). Match recent commit style and **semantic-release types** (see below).
+
+## Commit message types (semantic-release)
+
+Source: `package.json` → `release.plugins` → `@semantic-release/commit-analyzer` (angular preset + custom `releaseRules`).
+
+Pick the **type** from what the change does for **users/runtime**, not from file paths. Wrong types change the version bump on merge to `main`.
+
+| Type | Version bump | Use when |
+|------|--------------|----------|
+| `feat` | **minor** | New user-facing capability, new module behavior viewers/mod owners notice |
+| `fix` | **patch** | Bug fix (sync, playback, UI regression, broken channel JS) |
+| `perf` | **patch** | Measurable performance improvement, no new feature |
+| `refactor` | **patch** | Internal restructure, same external behavior |
+| `build` | **patch** | Build pipeline, bundle tooling, `scripts/build.js`, dist wiring |
+| `revert` | **patch** | Reverts a prior commit (`revert: "..."` body per angular) |
+| `BREAKING CHANGE` / `feat!` | **major** | Breaking channel config, loader contract, or removed public API |
+| `*(no-release)` | **none** | Docs-only, skill/rules, CI, tests-only, `.cursor/` — scope must be `no-release` |
+
+Types **not** in `releaseRules` (`chore`, `docs`, `test`, `ci`, `style`) do **not** trigger a release by default. Prefer a releasing type above when the change should ship to CyTube channels.
+
+### Type selection (before drafting)
+
+```
+User-visible bug fix?           → fix(scope):
+New viewer/mod feature?         → feat(scope):
+Faster/smaller, same behavior?  → perf(scope):
+Same behavior, cleaner code?    → refactor(scope):
+Build/dist/scripts only?        → build(scope):
+Revert prior commit?            → revert(scope):
+No release (docs/skills/CI)?    → chore(no-release): or type(no-release):
+Breaking loader/channel API?    → feat(scope)!: … + BREAKING CHANGE footer
+```
+
+### Format
+
+Angular conventional commits:
+
+```
+type(scope): imperative subject
+
+Optional body — why, not what. Closes #NN when applicable.
+```
+
+- **scope**: short area (`sync`, `ui`, `player`, `dev`, `release`) — use `no-release` to skip versioning
+- **subject**: ≤72 chars, imperative mood, no trailing period
+- **footer**: `BREAKING CHANGE: …` for major bumps; `Closes #64` to link issues
+
+### Examples (aligned with release rules)
+
+| Change | Message |
+|--------|---------|
+| Playback sync after channel JS | `fix(sync): hard reload player after layout (#64)` |
+| New poll overlay behavior | `feat(ui): stack poll drawer above chat` |
+| Bundle size / boot time | `perf(boot): collapse layout resize passes` |
+| Extract sync helper, same behavior | `refactor(sync): split seekUntilSynced` |
+| `scripts/build.js` / terser config | `build(bundle): update features bundle inputs` |
+| Skill or wiki only | `chore(no-release): document semantic-release commit types` |
+| Semantic-release on main (CI only) | `chore(release): 1.5.0 [skip ci]` — **do not use in feature PRs** |
+
+Do **not** use `chore:` for bug fixes or features that should patch/minor bump — use `fix` / `feat` so semantic-release versions correctly.
 
 ### 2. Build
 
@@ -82,7 +142,7 @@ If build fails, fix or report — do not commit broken `dist/` bundles.
 
 Semantic-release on merge to `main` will:
 
-1. Compute the next version from commit types (`feat` → minor, `fix` → patch)
+1. Compute the next version from commit types per `releaseRules` (`feat` → minor, `fix`/`perf`/`refactor`/`build` → patch, breaking → major; `*(no-release)` → skip)
 2. Run `npm run build && node scripts/inject-cdn-version.js`
 3. Commit `package.json`, `CHANGELOG.md`, `channel_config_settings.js`, and release assets
 4. Create the git tag (e.g. `v1.1.0`)
@@ -125,23 +185,26 @@ Semantic-release release assets (reference): `package.json`, `CHANGELOG.md`, `ch
 
 **Required:** `--no-verify` (project policy until lint/hooks are fixed).
 
-Use a HEREDOC for the message (PowerShell: use a here-string or `-m` with a single quoted multi-line string):
+1. Classify the diff using **Commit message types** above — pick `fix`/`feat`/`perf`/etc., not generic `chore`, unless scope is `no-release`.
+2. Draft subject + body; add `Closes #NN` or `BREAKING CHANGE:` when applicable.
+3. Commit:
 
 ```bash
 git commit --no-verify -m "$(cat <<'EOF'
 type(scope): short subject
 
-Optional body: why, not what. Issue #NN if applicable.
+Optional body: why, not what. Closes #NN if applicable.
 EOF
 )"
 ```
 
-Examples:
+PowerShell (no HEREDOC):
 
-- `feat(ui): minimal footer and 4px radius tokens (#39)`
-- `chore(release): bump CDN pin to v1.0.8`
+```powershell
+git commit --no-verify -m "fix(sync): hard reload player after layout" -m "Closes #64"
+```
 
-Do **not** use release-style commit messages or version bumps in feature PRs.
+Do **not** use `chore(release):` or version bumps in feature PRs — release CI owns that on `main`.
 
 ### 6. Confirm
 
@@ -158,7 +221,7 @@ Report commit hash and summary. Do **not** push unless the user asked.
 ```bash
 npm run build
 git add modules/ css/ dist/
-git commit --no-verify -m "feat(ui): ..."
+git commit --no-verify -m "fix(sync): ..."   # or feat/perf per release table
 ```
 
 Do **not** include `package.json` version or `channel_config_settings.js` CDN pin changes.
