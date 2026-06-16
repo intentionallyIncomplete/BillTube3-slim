@@ -162,7 +162,9 @@ BTFW.define("feature:nowplaying", [], async () => {
   function scheduleOverflowMeasure(ct) {
     if (!ct) return;
     const inner = ensureTitleInner(ct);
-    requestAnimationFrame(() => measureTitleOverflow(ct, inner));
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => measureTitleOverflow(ct, inner));
+    });
   }
 
   function stripPrefix(t) {
@@ -181,12 +183,24 @@ BTFW.define("feature:nowplaying", [], async () => {
       top.className = "btfw-chat-topbar";
       cw.prepend(top);
     }
-    let slot = top.querySelector("#btfw-nowplaying-slot");
+    let left = top.querySelector(".btfw-chat-topbar-left");
+    if (!left) {
+      left = document.createElement("div");
+      left.className = "btfw-chat-topbar-left";
+      top.prepend(left);
+    }
+    let slot = left.querySelector("#btfw-nowplaying-slot");
     if (!slot) {
-      slot = document.createElement("div");
-      slot.id = "btfw-nowplaying-slot";
-      slot.className = "btfw-chat-title";
-      top.appendChild(slot);
+      const stray = top.querySelector(":scope > #btfw-nowplaying-slot");
+      if (stray) {
+        slot = stray;
+        left.appendChild(slot);
+      } else {
+        slot = document.createElement("div");
+        slot.id = "btfw-nowplaying-slot";
+        slot.className = "btfw-chat-title";
+        left.appendChild(slot);
+      }
     }
     return slot;
   }
@@ -226,6 +240,7 @@ BTFW.define("feature:nowplaying", [], async () => {
         applyLookupMetadata(state.lastLookupInfo, { skipEvent: true });
       }
     }
+    scheduleOverflowMeasure(ct);
   }
 
   function getQueueActiveTitle() {
