@@ -1084,7 +1084,9 @@ const scheduleNormalizeChatActions = (() => {
 
   uc.classList.add("btfw-usercount");
   uc.classList.remove("pointer");
-  if (!uc.title) uc.title = "Connected users";
+  uc.removeAttribute("title");
+  uc.setAttribute("aria-label", "Connected users");
+  uc.dataset.btfwTip = "Connected users";
 
   if (!uc.dataset.btfwUsercountBound) {
     uc.addEventListener("click", (e) => {
