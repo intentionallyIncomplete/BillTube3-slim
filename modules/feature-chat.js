@@ -1025,7 +1025,19 @@ const scheduleNormalizeChatActions = (() => {
     const uc = $("#usercount");
     if (!uc) return;
 
-    const cleaned = (uc.textContent || "")
+    const raw = (uc.textContent || "").trim();
+    const leading = raw.match(/^(\d+)/);
+    if (leading) {
+      uc.textContent = leading[1];
+      return;
+    }
+
+    if (typeof window.CHANNEL?.usercount === "number") {
+      uc.textContent = String(window.CHANNEL.usercount);
+      return;
+    }
+
+    const cleaned = raw
       .replace(/connected users/gi, " ")
       .replace(/connected user/gi, " ")
       .replace(/not connected/gi, " ")
@@ -1033,6 +1045,88 @@ const scheduleNormalizeChatActions = (() => {
       .trim();
 
     uc.textContent = cleaned || "0";
+  }
+
+  function buildUsercountBreakdownHtml() {
+    if (typeof window.calcUserBreakdown === "function") {
+      try {
+        const breakdown = window.calcUserBreakdown();
+        return Object.keys(breakdown)
+          .map((key) => `<strong>${key}:&nbsp;</strong>${breakdown[key]}<br>`)
+          .join("");
+      } catch (_) {}
+    }
+    const count = $("#usercount")?.textContent?.trim() || "0";
+    return `<strong>Connected users:&nbsp;</strong>${count}`;
+  }
+
+  function positionUsercountPopup(popup, anchor) {
+    const margin = 8;
+    const rect = anchor.getBoundingClientRect();
+    popup.style.visibility = "hidden";
+    popup.style.display = "block";
+    popup.style.left = "0";
+    popup.style.top = "0";
+
+    const popupRect = popup.getBoundingClientRect();
+    let left = rect.right - popupRect.width;
+    let top = rect.top - popupRect.height - 6;
+
+    if (top < margin) {
+      top = rect.bottom + 6;
+    }
+
+    left = Math.max(margin, Math.min(left, window.innerWidth - popupRect.width - margin));
+    top = Math.max(margin, Math.min(top, window.innerHeight - popupRect.height - margin));
+
+    popup.style.left = `${left}px`;
+    popup.style.top = `${top}px`;
+    popup.style.visibility = "visible";
+  }
+
+  function hideUsercountPopup() {
+    const popup = document.getElementById("btfw-usercount-popup");
+    if (popup) popup.remove();
+  }
+
+  function showUsercountPopup(anchor) {
+    hideUsercountPopup();
+
+    const popup = document.createElement("div");
+    popup.id = "btfw-usercount-popup";
+    popup.className = "btfw-usercount-popup profile-box";
+    popup.setAttribute("role", "tooltip");
+    popup.innerHTML = buildUsercountBreakdownHtml();
+    document.body.appendChild(popup);
+    positionUsercountPopup(popup, anchor);
+  }
+
+  function wireUsercountPopup(uc) {
+    if (!uc) return;
+
+    try {
+      if (window.$) {
+        $(uc).off("mouseenter mousemove mouseleave click");
+      }
+    } catch (_) {}
+
+    if (uc.dataset.btfwUsercountPopupWired) return;
+    uc.dataset.btfwUsercountPopupWired = "true";
+
+    uc.addEventListener("mouseenter", () => {
+      showUsercountPopup(uc);
+    });
+    uc.addEventListener("mouseleave", hideUsercountPopup);
+    uc.addEventListener("focus", () => {
+      showUsercountPopup(uc);
+    });
+    uc.addEventListener("blur", hideUsercountPopup);
+
+    if (!document._btfwUsercountPopupDismiss) {
+      document._btfwUsercountPopupDismiss = true;
+      window.addEventListener("scroll", hideUsercountPopup, true);
+      window.addEventListener("resize", hideUsercountPopup);
+    }
   }
 
   function wireUsercountSocket(){
@@ -1086,7 +1180,6 @@ const scheduleNormalizeChatActions = (() => {
   uc.classList.remove("pointer");
   uc.removeAttribute("title");
   uc.setAttribute("aria-label", "Connected users");
-  uc.dataset.btfwTip = "Connected users";
 
   if (!uc.dataset.btfwUsercountBound) {
     uc.addEventListener("click", (e) => {
@@ -1101,6 +1194,7 @@ const scheduleNormalizeChatActions = (() => {
   }
 
   cleanUsercountText();
+  wireUsercountPopup(uc);
   orderChatActions(actions);
   wireUsercountSocket();
 }
