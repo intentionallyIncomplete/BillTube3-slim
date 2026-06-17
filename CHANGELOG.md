@@ -1,3 +1,10 @@
+## [1.4.6](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.4.5...v1.4.6) (2026-06-17)
+
+
+### Bug Fixes
+
+* **layout:** release chat/video splitter on pointer up ([c5e0d38](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/c5e0d38a2fa7e129b604c24c8a5bfaa30e7a8ff5)), closes [#72](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/72)
+
 ## [1.4.5](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.4.4...v1.4.5) (2026-06-17)
 
 
