@@ -580,6 +580,12 @@ a:hover {
   border-radius: 4px;
   cursor: col-resize;
   align-self: stretch; /* Ensure splitter takes full height */
+  touch-action: none;
+}
+
+body.btfw-resizing {
+  cursor: col-resize;
+  user-select: none;
 }
 
 /* Allow swapping chat/video positions on desktop */

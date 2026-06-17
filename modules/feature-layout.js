@@ -245,20 +245,20 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
       console.warn("[BTFW] Resizer elements not found.");
       return;
     }
+    if (splitter.dataset.btfwResizeWired) return;
+    splitter.dataset.btfwResizeWired = "true";
 
     let isResizing = false;
+    let activePointerId = null;
 
-    splitter.addEventListener("mousedown", (e) => {
-      if (isVertical) return;
-      isResizing = true;
-      e.preventDefault();
-      document.body.classList.add("btfw-resizing");
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", stopResize);
-    });
+    function handlePointerMove(e) {
+      if (!isResizing) return;
+      if (activePointerId !== null && e.pointerId !== activePointerId) return;
 
-    function handleMouseMove(e) {
-      if (!isResizing || isVertical) return;
+      if (isVertical) {
+        stopResize();
+        return;
+      }
 
       const gridRect = grid.getBoundingClientRect();
       const splitRect = splitter.getBoundingClientRect();
@@ -284,12 +284,42 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
 
     function stopResize() {
       if (!isResizing) return;
+      const pointerId = activePointerId;
       isResizing = false;
+      activePointerId = null;
       document.body.classList.remove("btfw-resizing");
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", stopResize);
+      splitter.removeEventListener("pointermove", handlePointerMove);
+      splitter.removeEventListener("pointerup", stopResize);
+      splitter.removeEventListener("pointercancel", stopResize);
+      window.removeEventListener("blur", stopResize);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      try {
+        if (pointerId !== null && typeof splitter.releasePointerCapture === "function") {
+          splitter.releasePointerCapture(pointerId);
+        }
+      } catch (_) {}
       updateResponsiveLayout();
     }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") stopResize();
+    }
+
+    splitter.addEventListener("pointerdown", (e) => {
+      if (isVertical || e.button !== 0) return;
+      isResizing = true;
+      activePointerId = e.pointerId;
+      e.preventDefault();
+      document.body.classList.add("btfw-resizing");
+      try {
+        splitter.setPointerCapture(e.pointerId);
+      } catch (_) {}
+      splitter.addEventListener("pointermove", handlePointerMove);
+      splitter.addEventListener("pointerup", stopResize);
+      splitter.addEventListener("pointercancel", stopResize);
+      window.addEventListener("blur", stopResize);
+      document.addEventListener("visibilitychange", onVisibilityChange);
+    });
   }
 
   const BOOT=/^(col(-(xs|sm|md|lg|xl))?-(\d+|auto)|row|container(-fluid)?|pull-(left|right)|offset-\d+)$/;
