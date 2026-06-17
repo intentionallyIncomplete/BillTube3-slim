@@ -1,3 +1,10 @@
+## [1.4.5](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.4.4...v1.4.5) (2026-06-17)
+
+
+### Bug Fixes
+
+* **playlist:** encode spaces in media URLs before queueing ([72440fd](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/72440fd47e796b69cc4efbbc64514248f5824bdd)), closes [#77](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/77)
+
 ## [1.4.4](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.4.3...v1.4.4) (2026-06-17)
 
 
