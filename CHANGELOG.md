@@ -1,3 +1,10 @@
+## [1.4.8](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.4.7...v1.4.8) (2026-06-18)
+
+
+### Bug Fixes
+
+* **emotes:** focus search input when opening picker ([bf9bf2d](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/bf9bf2dd457d27a22937336e5e7c44f738b4b2e4)), closes [#76](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/76)
+
 ## [1.4.7](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.4.6...v1.4.7) (2026-06-18)
 
 
