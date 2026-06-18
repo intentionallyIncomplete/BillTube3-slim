@@ -210,7 +210,7 @@ BTFW.define("feature:themeSettings", [], async () => {
                   </header>
                   <div class="btfw-ts-card__body">
                     <div class="btfw-ts-control">
-                      <label class="btfw-input__label" for="btfw-emote-size">Emote & GIF size</label>
+                      <label class="btfw-input__label" for="btfw-emote-size">Emote size</label>
                       <div class="select is-small">
                         <select id="btfw-emote-size">
                           <option value="small">Small (100×100)</option>

@@ -894,13 +894,30 @@ img.twemoji { width: 1em; height: 1em; vertical-align: -0.15em; }
 
 :root { --btfw-emote-size: 130px; } /* default medium = 130px */
 
-#messagebuffer img.channel-emote,
-#messagebuffer img.giphy.chat-picture,
-#messagebuffer img.tenor.chat-picture {
+#messagebuffer {
+  --btfw-chat-gif-max-width: 90%;
+  --btfw-chat-gif-hover-scale: 1.2;
+}
+
+#messagebuffer img.channel-emote {
   width: auto !important;
   height: auto !important;
   max-width: var(--btfw-emote-size) !important;
   max-height: var(--btfw-emote-size) !important;
+  object-fit: contain;
+  display: inline-block;
+  vertical-align: middle;
+  margin: 2px 3px;
+  border-radius: var(--btfw-radius);
+}
+
+#messagebuffer img.giphy.chat-picture,
+#messagebuffer img.tenor.chat-picture {
+  width: auto !important;
+  height: auto !important;
+  /* base cap so scale(1.2) on hover stays within --btfw-chat-gif-max-width */
+  max-width: calc(var(--btfw-chat-gif-max-width) / var(--btfw-chat-gif-hover-scale)) !important;
+  max-height: none !important;
   object-fit: contain;
   display: inline-block;
   vertical-align: middle;
@@ -923,7 +940,7 @@ img.twemoji { width: 1em; height: 1em; vertical-align: -0.15em; }
 
 #messagebuffer img.chat-picture:hover,
 #messagebuffer .chat-msg img:not(.channel-emote):not(.twemoji):not(.btfw-chat-avatar):hover {
-  transform: scale(1.2);
+  transform: scale(var(--btfw-chat-gif-hover-scale, 1.2));
   z-index: 3;
   box-shadow: 0 6px 20px color-mix(in srgb, var(--btfw-color-bg) 55%, transparent 45%);
 }
