@@ -18,7 +18,7 @@ const billtubeGiphyClassic = {
   source:
     "https?://media\\d+\\.giphy\\.com/media/(?!v1\\.)([^ /\\n]+)/giphy\\.gif",
   replace:
-    '<img class="giphy chat-picture" src="https://media.giphy.com/media/\\1/200_s.gif" />',
+    '<img class="giphy chat-picture" src="https://media.giphy.com/media/\\1/giphy_s.gif" />',
   flags: "gi",
 };
 
@@ -26,7 +26,7 @@ const billtubeGiphyV1 = {
   source:
     "https?://media\\d+\\.giphy\\.com/media/v1\\.[^/]+/([^ /\\n]+)/giphy\\.gif",
   replace:
-    '<img class="giphy chat-picture" src="https://media.giphy.com/media/\\1/200_s.gif" />',
+    '<img class="giphy chat-picture" src="https://media.giphy.com/media/\\1/giphy_s.gif" />',
   flags: "gi",
 };
 

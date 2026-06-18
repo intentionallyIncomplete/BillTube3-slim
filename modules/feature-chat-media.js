@@ -22,39 +22,33 @@ BTFW.define("feature:chatMedia", [], async () => {
   function applySize(mode){
     const px = SIZE_PX[mode] || SIZE_PX.md;
     document.documentElement.style.setProperty("--btfw-emote-size", px + "px");
-    $$(SEL).forEach(forceSizeOn);
   }
 
   const isGiphy = (img)=> img.classList.contains("giphy") || /media\d\.giphy\.com\/media\/.+\/.+\.gif/i.test(img.src);
   const isTenor = (img)=> img.classList.contains("tenor") || /media\.tenor\.com\/.+\.gif/i.test(img.src);
-  const toAnimated = (src)=> src.replace(/\/200_s\.gif$/i, "/200.gif");
-  const toStatic   = (src)=> src.replace(/\/200\.gif$/i,   "/200_s.gif");
-
-  function ensureTagged(img){
-    if (!img.classList.contains("channel-emote")) img.classList.add("channel-emote");
-  }
+  const toAnimated = (src)=> src
+    .replace(/\/giphy_s\.gif$/i, "/giphy.gif")
+    .replace(/\/200_s\.gif$/i, "/giphy.gif")
+    .replace(/\/200\.gif$/i, "/giphy.gif");
+  const toStatic = (src)=> src
+    .replace(/\/giphy\.gif$/i, "/giphy_s.gif")
+    .replace(/\/200\.gif$/i, "/giphy_s.gif");
 
   function setSrcIfDifferent(img, next){
     if (next && img.src !== next) img.src = next;
   }
 
-  function forceSizeOn(img){
+  function clearGifSizeCaps(img){
     if (img.hasAttribute("width"))  img.removeAttribute("width");
     if (img.hasAttribute("height")) img.removeAttribute("height");
-    const v = "var(--btfw-emote-size)";
-    img.style.setProperty("width",     "auto", "important");
-    img.style.setProperty("height",    "auto", "important");
-    img.style.setProperty("max-width", v, "important");
-    img.style.setProperty("max-height",v, "important");
-    img.style.setProperty("object-fit","contain");
-    img.style.setProperty("vertical-align","middle");
-    img.style.setProperty("border-radius","8px");
-    img.style.setProperty("margin","2px 3px");
+    img.style.removeProperty("max-width");
+    img.style.removeProperty("max-height");
+    img.style.setProperty("width", "auto", "important");
+    img.style.setProperty("height", "auto", "important");
   }
 
   function wireOne(img){
-    ensureTagged(img);
-    forceSizeOn(img);
+    clearGifSizeCaps(img);
 
     if (!img._btfwWired) {
       img._btfwWired = true;
