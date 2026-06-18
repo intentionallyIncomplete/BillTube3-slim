@@ -1,3 +1,12 @@
+## [1.4.7](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.4.6...v1.4.7) (2026-06-18)
+
+
+### Bug Fixes
+
+* **player:** replace city wedge volume with usable horizontal slider ([d2d22eb](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/d2d22eb6d83464e5c719bf657c8ab12bf575a368))
+* **player:** tune volume slider width and control bar spacing ([b2d26fc](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/b2d26fc7de85dfeac2d39cc773f9e5b88555813f))
+* **player:** widen volume slider for finer low-volume control ([e79bd8a](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/e79bd8a7a6b38652c2c3bffa01d4a68c31cbe0ef)), closes [#73](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/73)
+
 ## [1.4.6](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.4.5...v1.4.6) (2026-06-17)
 
 
