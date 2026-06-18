@@ -1,3 +1,11 @@
+## [1.4.10](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.4.9...v1.4.10) (2026-06-18)
+
+
+### Bug Fixes
+
+* **chat:** full-size Giphy embeds capped at 90% chat width ([2df43cf](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/2df43cf4caa92b9089c412b1b631e40e2e7d88d1))
+* **chat:** repair classic Giphy chat filter patterns ([29115e2](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/29115e23308c7c0b0f26eb1c6490b1355a19a0b4))
+
 ## [1.4.9](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.4.8...v1.4.9) (2026-06-18)
 
 
