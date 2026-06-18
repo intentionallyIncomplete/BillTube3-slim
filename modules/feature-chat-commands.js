@@ -29,69 +29,6 @@ function getCurrentTitle(){
   return t;
 }
 
-  const workerUrl    = 'https://trivia-worker.billtube.workers.dev';
-  const triviaAPIUrl = 'https://opentdb.com/api.php?amount=1&type=multiple';
-
-  let triviaActive=false, correctAnswer='', answeredUsers=new Set(), triviaTimeoutId=null;
-
-  function decodeHTMLEntities(text){ const t=document.createElement('textarea'); t.innerHTML=text; return t.value; }
-  function stylizeUsername(u){
-    const map={'a':'a','b':'b','c':'c','d':'d','e':'e','f':'f','g':'g','h':'h','i':'i','j':'j','k':'k','l':'l','m':'m','n':'n','o':'o','p':'p','q':'q','r':'r','s':'s','t':'t','u':'u','v':'v','w':'w','x':'x','y':'y','z':'z','A':'A','B':'B','C':'C','D':'D','E':'E','F':'F','G':'G','H':'H','I':'I','J':'J','K':'K','L':'L','M':'M','N':'N','O':'O','P':'P','Q':'Q','R':'R','S':'S','T':'T','U':'U','V':'V','W':'W','X':'X','Y':'Y','Z':'Z'};
-    return String(u||"").split("").map(ch=>map[ch]||ch).join("");
-  }
-  async function updateScore(username){
-    try {
-      await fetch(`${workerUrl}/updateScore`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username }) });
-    } catch(e){ console.error('[trivia] updateScore failed:', e); }
-  }
-  async function displayLeaderboard(){
-    try {
-      const res = await fetch(`${workerUrl}/leaderboard`);
-      const leaderboard = await res.json();
-      let message = '🎉 Leaderboard:\n';
-      leaderboard.forEach(({ username, score }) => { message += `${stylizeUsername(username)}: ${score} points\n`; });
-      sendChat(message);
-    } catch(e){ console.error('[trivia] leaderboard failed:', e); }
-  }
-  async function fetchTriviaQuestion(){
-    try {
-      const response = await fetch(triviaAPIUrl);
-      const data = await response.json();
-      if (data.results && data.results.length > 0) {
-        const q = data.results[0];
-        correctAnswer = decodeHTMLEntities(q.correct_answer.toLowerCase());
-        const all = [...q.incorrect_answers, q.correct_answer].map(decodeHTMLEntities).sort(()=>Math.random()-0.5);
-        const colors = ["#ffa500","#ff4500","#1e90ff","#32cd32"];
-        const colored = all.map((ans,i)=>`col:${colors[i%colors.length]}:${ans}`);
-        const question = decodeHTMLEntities(q.question);
-        return `🎬 [code]Trivia: ${question}[/code] \nOptions: ${colored.join(', ')}`;
-      }
-      return '[i]No trivia question available at the moment.[/i]';
-    } catch(e){ console.error('[trivia] OpenTDB error:', e); return 'Error fetching trivia question. Please try again later.'; }
-  }
-  async function startTriviaOnce(){
-    if (!hasRank(2)) return 'col:#a52a2a:You do not have permission to start a trivia question.';
-    if (triviaActive) return 'col:#a52a2a:A trivia question is already active!';
-    const q = await fetchTriviaQuestion();
-    triviaActive = true; answeredUsers.clear();
-    sendChat('!trivia'); sendChat(q);
-    clearTimeout(triviaTimeoutId);
-    triviaTimeoutId = setTimeout(()=>{ if (triviaActive){ triviaActive=false; sendChat(`col:#a52a2a:⏰ Time's up! The correct answer was: ${correctAnswer}`);} }, 30000);
-    return '';
-  }
-  function onIncomingChatMsg(data){
-    const username = data?.username || '';
-    const message  = (data?.msg || '').trim();
-    if (!triviaActive || !username || !message) return;
-    if (answeredUsers.has(username)) return;
-    if (message.toLowerCase() === correctAnswer) {
-      answeredUsers.add(username);
-      triviaActive=false; clearTimeout(triviaTimeoutId);
-      updateScore(username).then(()=> displayLeaderboard()).catch(()=>{});
-      sendChat(`col:#008000:🎉 ${username} got the right answer! Their score has been updated.`);
-    }
-  }
-
   function getTMDBKey(){
     try {
       const cfg = (window.BTFW_CONFIG && typeof window.BTFW_CONFIG === "object") ? window.BTFW_CONFIG : {};
@@ -377,9 +314,6 @@ function sanitizeTitleForSearch(t){
 
   addCommand("help", ()=> `Commands: ${listPrimary().map(n=>"!"+n).join(", ")}  —  Click the “?” button below chat for details.`, { desc:"List commands", usage:"!help" });
 
-  addCommand("leaderboard", async ()=>{ await displayLeaderboard(); return ""; }, { desc:"Show trivia leaderboard", usage:"!leaderboard" });
-  addCommand("trivia",      async ()=>{ const out=await startTriviaOnce(); return out||""; }, { desc:"Start one trivia question (rank ≥2)", usage:"!trivia" });
-
   addCommand("summary", async (ctx)=>{
   const raw = ctx.args.length ? ctx.args.join(" ") : getCurrentTitle();
   if (!raw) return "No current title, try: !summary <title>";
@@ -435,10 +369,6 @@ addCommand("cast", async (ctx)=>{
       }
     } catch(_) {}
   }
-  function wireIncoming(){
-    try { if (window.socket && socket.on) socket.on("chatMsg", onIncomingChatMsg); } catch(_) {}
-  }
-
   function buildCommandsTable(){
     const rows = listPrimary().map(name=>{
       const c = REG.get(name);
@@ -534,7 +464,6 @@ addCommand("cast", async (ctx)=>{
   function boot(){
     const input = $("#chatline");
     if (input && !input._btfwCmds) { input._btfwCmds = true; input.addEventListener("keydown", onEnterIntercept, true); }
-    wireIncoming();
     ensureCommandsButton();
     watchBars();
   }
