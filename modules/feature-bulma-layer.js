@@ -41,7 +41,7 @@ html[data-btfw-theme="dark"] .dropdown-content,
 html[data-btfw-theme="dark"] .modal-card {
   background: color-mix(in srgb, var(--btfw-color-surface) 92%, transparent 8%) !important;
   color: var(--btfw-color-text) !important;
-  border: 1px solid var(--btfw-border) !important;
+  border: 0 !important;
   box-shadow: var(--btfw-overlay-shadow);
   border-radius: var(--btfw-radius);
 }
@@ -50,7 +50,7 @@ html[data-btfw-theme="dark"] .tabs.is-boxed li a { background:transparent; borde
 html[data-btfw-theme="dark"] .tabs.is-boxed li.is-active a {
   background: color-mix(in srgb, var(--btfw-color-panel) 82%, transparent 18%);
   color: var(--btfw-color-text);
-  border-color: var(--btfw-border);
+  border-color: var(--btfw-surface-divider);
 }
 
 /* Inputs */
@@ -59,7 +59,8 @@ html[data-btfw-theme="dark"] .textarea,
 html[data-btfw-theme="dark"] .select select {
   background: color-mix(in srgb, var(--btfw-color-panel) 94%, transparent 6%) !important;
   color: var(--btfw-color-text) !important;
-  border-color: color-mix(in srgb, var(--btfw-border) 80%, transparent 20%) !important;
+  border: 0 !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--btfw-surface-divider) 85%, transparent 15%) !important;
 }
 html[data-btfw-theme="dark"] .input::placeholder,
 html[data-btfw-theme="dark"] .textarea::placeholder {
@@ -71,7 +72,7 @@ html[data-btfw-theme="dark"] .button,
 html[data-btfw-theme="dark"] .btn {
   background: color-mix(in srgb, var(--btfw-color-panel) 88%, transparent 12%);
   color: var(--btfw-color-text);
-  border: 1px solid color-mix(in srgb, var(--btfw-border) 70%, transparent 30%);
+  border: 0;
 }
 html[data-btfw-theme="dark"] .button:hover,
 html[data-btfw-theme="dark"] .btn:hover {
@@ -94,7 +95,7 @@ html[data-btfw-theme="dark"] .modal .modal-background { background-color: color-
 html[data-btfw-theme="dark"] .modal-card-head,
 html[data-btfw-theme="dark"] .modal-card-foot {
   background-color: color-mix(in srgb, var(--btfw-color-panel) 92%, transparent 8%) !important;
-  border-color: var(--btfw-border) !important;
+  border-color: var(--btfw-surface-divider) !important;
   color: var(--btfw-color-text) !important;
 }
 html[data-btfw-theme="dark"] .modal-card {
@@ -114,7 +115,8 @@ html[data-btfw-theme="dark"] .modal-dialog { max-width: 880px; }
 html[data-btfw-theme="dark"] .modal-content {
   background-color: color-mix(in srgb, var(--btfw-color-surface) 94%, transparent 6%) !important;
   color: var(--btfw-color-text) !important;
-  border:1px solid var(--btfw-border) !important;
+  border:0 !important;
+  box-shadow: var(--btfw-overlay-shadow);
 }
 @media screen and (min-width: 769px) {
   .modal-card, .modal-content {
@@ -125,7 +127,7 @@ html[data-btfw-theme="dark"] .modal-content {
 html[data-btfw-theme="dark"] .modal-header,
 html[data-btfw-theme="dark"] .modal-footer {
   background-color: color-mix(in srgb, var(--btfw-color-panel) 92%, transparent 8%) !important;
-  border-color: var(--btfw-border) !important;
+  border-color: var(--btfw-surface-divider) !important;
   color: var(--btfw-color-text) !important;
 }
 html[data-btfw-theme="dark"] .modal-title { color: var(--btfw-color-text) !important; }

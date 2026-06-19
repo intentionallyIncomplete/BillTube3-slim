@@ -21,7 +21,8 @@
   padding: 12px;
   background: color-mix(in srgb, var(--btfw-color-surface, #1a1a1a) 80%, transparent 20%);
   border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--btfw-color-accent, #4a90e2) 30%, transparent 70%);
+  border: 0;
+  box-shadow: var(--btfw-glass-shadow);
   margin: 8px 0;
   max-width: 600px;
 }
@@ -199,7 +200,7 @@ footer {
       color-mix(in srgb, var(--btfw-color-panel) 96%, black 4%),
       color-mix(in srgb, var(--btfw-color-surface) 92%, black 8%));
   border-radius: var(--btfw-radius);
-  border: 1px solid color-mix(in srgb, var(--btfw-color-accent) 9%, transparent 92%);
+  border: 0;
   color: var(--btfw-color-text);
 }
 
@@ -219,7 +220,7 @@ footer {
     color-mix(in srgb, var(--btfw-color-panel) 88%, transparent 12%),
     color-mix(in srgb, var(--btfw-color-accent) 20%, transparent 80%));
   border-radius: var(--btfw-radius);
-  border: 1px solid color-mix(in srgb, var(--btfw-color-accent) 36%, transparent 64%);
+  border: 0;
   box-shadow: var(--btfw-overlay-shadow);
 }
 
@@ -233,7 +234,7 @@ footer {
       color-mix(in srgb, var(--btfw-color-panel) 94%, transparent 6%),
       color-mix(in srgb, var(--btfw-color-surface) 92%, transparent 8%));
   border-radius: var(--btfw-radius);
-  border: 1px solid color-mix(in srgb, var(--btfw-color-accent) 24%, transparent 76%);
+  border: 0;
   box-shadow: var(--btfw-overlay-shadow);
   padding: clamp(12px, 2vw, 18px);
   overflow: hidden;
@@ -292,7 +293,7 @@ footer {
       color-mix(in srgb, var(--btfw-color-panel) 86%, transparent 14%),
       color-mix(in srgb, var(--btfw-color-surface) 92%, transparent 8%));
   border-radius: var(--btfw-radius);
-  border: 1px solid color-mix(in srgb, var(--btfw-color-accent) 30%, transparent 70%);
+  border: 0;
   color: var(--btfw-color-text);
 }
 
@@ -312,8 +313,8 @@ footer {
   margin-bottom: 10px;
   background: color-mix(in srgb, var(--btfw-color-surface) 86%, transparent 14%);
   border-radius: var(--btfw-radius);
-  border: 1px solid color-mix(in srgb, var(--btfw-border) 62%, transparent 38%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border: 0;
+  box-shadow: inset 0 1px 0 var(--btfw-surface-highlight);
   font-weight: 500;
   color: color-mix(in srgb, var(--btfw-color-text) 90%, transparent 10%);
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
@@ -681,20 +682,23 @@ body.btfw-resizing {
   transition: padding 0.24s ease, gap 0.24s ease;
 }
 .btfw-stack-item{
-  border:1px solid var(--btfw-border);
+  border: 0;
   border-radius: var(--btfw-radius);
   background: var(--btfw-card-bg);
   margin-top: 20px;
+  box-shadow:
+    var(--btfw-glass-shadow),
+    inset 0 1px 0 var(--btfw-surface-highlight);
 }
 .btfw-stack-item__header{
   display:flex; align-items:center; justify-content:space-between;
   padding:6px 8px;
-  border-bottom:1px solid var(--btfw-border);
+  border-bottom: 1px solid var(--btfw-surface-divider);
 }
 .btfw-stack-arrows{ display:flex; gap:6px; }
 .btfw-arrow{
   background: color-mix(in srgb, var(--btfw-color-panel) 30%, transparent 70%);
-  border:1px solid var(--btfw-border);
+  border: 0;
   border-radius:8px;
   padding:2px 8px; line-height:1; cursor:pointer;
   color: var(--btfw-color-text);
@@ -709,7 +713,7 @@ body.btfw-resizing {
 /* Grouped items styling */
 .btfw-stack-item.btfw-group-item .btfw-stack-item__header {
   background: color-mix(in srgb, var(--btfw-color-accent) 18%, transparent 82%);
-  border-bottom: 1px solid color-mix(in srgb, var(--btfw-color-accent) 34%, transparent 66%);
+  border-bottom: 1px solid var(--btfw-surface-divider);
   border-radius: var(--btfw-radius);
 }
 .btfw-stack-item.btfw-group-item .btfw-stack-item__title {
@@ -724,10 +728,11 @@ body.btfw-resizing {
   gap: 8px;
 }
 .btfw-group-body > * {
-  border: 1px solid color-mix(in srgb, var(--btfw-border) 20%, transparent 40%);
+  border: 0;
   border-radius: 8px;
   background: color-mix(in srgb, var(--btfw-color-surface) 86%, transparent 14%);
   padding: 6px;
+  box-shadow: inset 0 1px 0 var(--btfw-surface-highlight);
 }
 
 /* Poll controls styling */
@@ -751,7 +756,7 @@ body.btfw-resizing {
   background: linear-gradient(135deg,
     color-mix(in srgb, var(--btfw-color-accent) 24%, transparent 76%),
     color-mix(in srgb, var(--btfw-color-panel) 82%, transparent 18%)) !important;
-  border: 1px solid color-mix(in srgb, var(--btfw-color-accent) 32%, transparent 68%) !important;
+  border: 0 !important;
   border-radius: 14px !important;
   box-shadow: var(--btfw-overlay-shadow);
 }
@@ -793,7 +798,8 @@ body.btfw-resizing {
 .btfw-plbar__search .input {
   width: 100%;
   background: color-mix(in srgb, var(--btfw-color-surface) 86%, transparent 14%);
-  border: 1px solid color-mix(in srgb, var(--btfw-border) 78%, transparent 22%);
+  border: 0;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--btfw-surface-divider) 80%, transparent 20%);
   color: var(--btfw-color-text);
   border-radius: var(--btfw-radius);
 }
@@ -811,7 +817,7 @@ body.btfw-resizing {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   background: color-mix(in srgb, var(--btfw-color-accent) 16%, transparent 84%);
-  border: 1px solid color-mix(in srgb, var(--btfw-color-accent) 32%, transparent 68%);
+  border: 0;
   border-radius: 999px;
   padding: 4px 12px;
   color: color-mix(in srgb, var(--btfw-color-text) 92%, transparent 8%);
@@ -858,19 +864,20 @@ body.btfw-resizing {
 .btfw-plbar__actions input[type=submit],
 .btfw-plbar__actions input[type=reset] {
   background: color-mix(in srgb, var(--btfw-color-surface) 82%, transparent 18%);
-  border: 1px solid color-mix(in srgb, var(--btfw-border) 74%, transparent 26%);
+  border: 0;
   border-radius: var(--btfw-radius);
   color: var(--btfw-color-text) !important;
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 600;
-  transition: background 0.14s ease, border-color 0.14s ease, transform 0.14s ease;
+  transition: background 0.14s ease, transform 0.14s ease;
   text-decoration: none;
 }
 
 .btfw-plbar__actions select {
   background: color-mix(in srgb, var(--btfw-color-panel) 88%, transparent 12%);
-  border: 1px solid color-mix(in srgb, var(--btfw-border) 78%, transparent 22%);
+  border: 0;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--btfw-surface-divider) 80%, transparent 20%);
   border-radius: var(--btfw-radius);
   color: var(--btfw-color-text);
   padding: 6px 10px;
@@ -1164,7 +1171,7 @@ nav.pagination.is-centered.btfw-gif-pager {
 #btfw-theme-modal .btfw-theme-modal-card{
   width: min(920px, 94vw);
   background: color-mix(in srgb, var(--btfw-color-surface) 96%, transparent 4%);
-  border: 1px solid color-mix(in srgb, var(--btfw-border) 85%, transparent 15%);
+  border: 0;
   border-radius: 26px;
   box-shadow:
     0 32px 64px color-mix(in srgb, var(--btfw-color-bg) 60%, transparent 40%),
@@ -1176,7 +1183,7 @@ nav.pagination.is-centered.btfw-gif-pager {
 #btfw-theme-modal .modal-card-head,
 #btfw-theme-modal .modal-card-foot{
   background: color-mix(in srgb, var(--btfw-color-panel) 90%, transparent 10%);
-  border-color: color-mix(in srgb, var(--btfw-border) 80%, transparent 20%);
+  border-color: var(--btfw-surface-divider);
   color: var(--btfw-color-text);
 }
 
@@ -1274,7 +1281,7 @@ nav.pagination.is-centered.btfw-gif-pager {
 
 #btfw-theme-modal .btfw-ts-card{
   background: color-mix(in srgb, var(--btfw-color-panel) 92%, transparent 8%);
-  border: 1px solid color-mix(in srgb, var(--btfw-border) 78%, transparent 22%);
+  border: 0;
   border-radius: var(--btfw-radius);
   padding: 20px 22px;
   box-shadow:
@@ -1322,7 +1329,7 @@ nav.pagination.is-centered.btfw-gif-pager {
   padding: 10px 12px;
   border-radius: var(--btfw-radius);
   background: color-mix(in srgb, var(--btfw-color-panel) 88%, transparent 12%);
-  border: 1px solid color-mix(in srgb, var(--btfw-border) 78%, transparent 22%);
+  border: 0;
 }
 
 #btfw-theme-modal .btfw-ignore-name{
@@ -1346,7 +1353,7 @@ nav.pagination.is-centered.btfw-gif-pager {
   gap: 12px;
   padding: 16px 18px;
   border-radius: var(--btfw-radius);
-  border: 1px solid color-mix(in srgb, var(--btfw-border) 74%, transparent 26%);
+  border: 0;
   background: color-mix(in srgb, var(--btfw-color-panel) 90%, transparent 10%);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--btfw-color-text) 7%, transparent 93%);
   transition: border-color 0.2s ease, background 0.2s ease, opacity 0.2s ease;
