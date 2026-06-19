@@ -349,11 +349,11 @@
     width: 100%;
     padding: 3px 10px 10px;
     border-radius: 20px;
-    border: 1px solid color-mix(in srgb, var(--btfw-border) 70%, transparent 30%);
-    background: 
- color-mix(in srgb, var(--btfw-color-panel) 88%, transparent 12%);
-    box-shadow: 0 14px 34px 
- color-mix(in srgb, var(--btfw-color-bg) 38%, transparent 62%);
+    border: 0;
+    background: color-mix(in srgb, var(--btfw-color-panel) 88%, transparent 12%);
+    box-shadow:
+      var(--btfw-glass-shadow),
+      inset 0 1px 0 var(--btfw-surface-highlight);
     position: relative;
     overflow: hidden;
 }

@@ -813,7 +813,6 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
         if (!btnContainer) {
           btnContainer = document.createElement('div');
           btnContainer.className = 'poll-controls';
-          btnContainer.style.cssText = 'margin-bottom: 8px; padding: 4px; display: flex; gap: 6px;';
           pollWrap.insertBefore(btnContainer, pollWrap.firstChild);
         }
         
