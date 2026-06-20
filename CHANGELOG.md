@@ -1,3 +1,12 @@
+# [1.6.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.5.0...v1.6.0) (2026-06-20)
+
+
+### Features
+
+* **ui:** flatten stack list and chat composer borders ([3c409e4](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/3c409e4406cce703cf8669f7fe5ec9509a40d607))
+* **ui:** reduce borders for unified glass-like surfaces ([5ce9d30](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/5ce9d30e01e8b848dd2edb0cb9a572b578696e9b)), closes [#92](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/92)
+* **ui:** separate stack panels and polish header actions ([4fc00b9](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/4fc00b93de848ed92ce029d1b0263d106237a9e2))
+
 # [1.5.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.4.13...v1.5.0) (2026-06-19)
 
 
