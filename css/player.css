@@ -536,7 +536,7 @@
   padding: 8px 12px;
   margin: 0 0 6px;
   background: var(--btfw-color-panel);
-  border: 1px solid var(--btfw-border);
+  border: 0;
   color: var(--btfw-color-text);
   buffered-rendering: auto;
   text-rendering: optimizeSpeed;
@@ -545,7 +545,6 @@
 #queue li.queue_entry:hover,
 .queue_entry:hover {
   background: var(--btfw-color-surface, var(--btfw-color-panel));
-  border-color: var(--btfw-border);
 }
 
 #queue li.queue_entry .qe_title,
@@ -587,7 +586,7 @@
 #queue li.queue_entry .btn-group .btn,
 .queue_entry .btn-group .btn {
   background: var(--btfw-color-surface, var(--btfw-color-panel));
-  border: 1px solid var(--btfw-border);
+  border: 0;
   border-radius: 6px;
   color: var(--btfw-color-text) !important;
   padding: 4px 10px;
@@ -598,7 +597,6 @@
 #queue li.queue_entry .btn-group .btn:hover,
 .queue_entry .btn-group .btn:hover {
   background: var(--btfw-color-accent);
-  border-color: var(--btfw-color-accent);
   color: var(--btfw-color-on-accent) !important;
 }
 
@@ -696,10 +694,9 @@
 
 .btfw-addmedia-panel {
     margin-top: 16px;
-    border-radius: 18px;
-    border: 1px solid
- color-mix(in srgb, var(--btfw-color-accent) 30%, transparent 70%);
-    background: var(--btfw-color-bg);
+  border: 0;
+  border-radius: 18px;
+  background: var(--btfw-color-bg);
     box-shadow: 0 22px 48px 
  color-mix(in srgb, var(--btfw-color-bg) 52%, transparent 48%), 0 10px 24px 
  color-mix(in srgb, var(--btfw-color-bg) 34%, transparent 66%);

@@ -32,7 +32,7 @@ BTFW.define("feature:poll-overlay", [], async () => {
       pointer-events: auto;
       background: var(--btfw-overlay-bg);
       backdrop-filter: saturate(130%) blur(2px);
-      border: 1px solid var(--btfw-overlay-border);
+      border: 0;
       border-radius: calc(var(--btfw-radius) + 6px);
       padding: 20px;
       box-shadow: var(--btfw-overlay-shadow);
@@ -91,7 +91,7 @@ BTFW.define("feature:poll-overlay", [], async () => {
 
     .btfw-poll-option-btn {
       background: color-mix(in srgb, var(--btfw-color-panel) 86%, transparent 14%);
-      border: 2px solid var(--btfw-border);
+      border: 0;
       border-radius: 6px;
       padding: 6px 12px;
       color: var(--btfw-color-text);
@@ -105,12 +105,11 @@ BTFW.define("feature:poll-overlay", [], async () => {
 
     .btfw-poll-option-btn:hover {
       background: color-mix(in srgb, var(--btfw-color-accent) 20%, transparent 80%);
-      border-color: var(--btfw-color-accent);
     }
 
     .btfw-poll-option-btn.active {
       background: color-mix(in srgb, var(--btfw-color-accent) 32%, transparent 68%);
-      border-color: var(--btfw-color-accent);
+      box-shadow: inset 0 0 0 2px var(--btfw-color-accent);
       color: var(--btfw-color-on-accent);
     }
 
@@ -126,7 +125,7 @@ BTFW.define("feature:poll-overlay", [], async () => {
       align-items: center;
       margin-top: 16px;
       padding-top: 12px;
-      border-top: 1px solid color-mix(in srgb, var(--btfw-border) 60%, transparent 40%);
+      border-top: 1px solid var(--btfw-surface-divider);
     }
 
     .btfw-poll-info {

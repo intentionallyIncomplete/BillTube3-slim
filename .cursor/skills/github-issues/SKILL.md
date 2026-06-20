@@ -4,11 +4,6 @@
 # contentSha: 0b01561
 # installed: 2026-05-28T06:11:16.733Z
 # source: https://agentskill.sh/github/github-issues
-#
-# IMPORTANT: After this skill is used for the first time, assess how
-# useful and functional it was, then rate it using:
-#   /learn feedback github/github-issues <1-5> [optional comment]
-# Your feedback helps surface the best skills for everyone.
 # ---
 ---
 name: github-issues
@@ -17,7 +12,7 @@ description: 'Create, update, and manage GitHub issues using MCP tools. Use this
 
 # GitHub Issues
 
-Manage GitHub issues using the `@modelcontextprotocol/server-github` MCP server.
+Manage GitHub issues using the `/MCP_DOCKER` skill tools. For an exhaustive list of tools from the MCP Server use `/user-MCP_DOCKER/mcp-discover`
 
 ## Available Tools
 
@@ -31,6 +26,7 @@ Manage GitHub issues using the `@modelcontextprotocol/server-github` MCP server.
 | `mcp__github__projects_list` | List projects, project fields, project items, status updates |
 | `mcp__github__projects_get` | Get details of a project, field, item, or status update |
 | `mcp__github__projects_write` | Add/update/delete project items, create status updates |
+| `mcp__github__add_issue_comment` | Add comment to existing Github Issue |
 
 ### CLI / REST API (write operations)
 
@@ -40,7 +36,6 @@ The MCP server does not currently support creating, updating, or commenting on i
 |-----------|---------|
 | Create issue | `gh api repos/{owner}/{repo}/issues -X POST -f title=... -f body=...` |
 | Update issue | `gh api repos/{owner}/{repo}/issues/{number} -X PATCH -f title=... -f state=...` |
-| Add comment | `gh api repos/{owner}/{repo}/issues/{number}/comments -X POST -f body=...` |
 | Close issue | `gh api repos/{owner}/{repo}/issues/{number} -X PATCH -f state=closed` |
 | Set issue type | Include `-f type=Bug` in the create call (REST API only, not supported by `gh issue create` CLI) |
 
