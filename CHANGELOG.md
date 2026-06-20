@@ -1,3 +1,15 @@
+# [1.7.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.6.0...v1.7.0) (2026-06-20)
+
+
+### Bug Fixes
+
+* **playlist:** add-media spaces and movie modal UX ([d490aa3](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/d490aa302c746ee19c29988445eaeba6e8ee4067)), closes [#94](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/94)
+
+
+### Features
+
+* **movie:** proxy TMDB via worker and overhaul movie requests ([a9796f0](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/a9796f087cf92f3e20fdc571391ba1472d2a53a0))
+
 # [1.6.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.5.0...v1.6.0) (2026-06-20)
 
 
