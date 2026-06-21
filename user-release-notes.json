@@ -1,6 +1,25 @@
 {
   "releases": [
     {
+      "version": "1.8.0",
+      "date": "2026-06-18",
+      "summary": "Save your own look in Theme Settings and a chat sidebar that sits cleaner beside the video.",
+      "categories": {
+        "features": [
+          "Theme Settings: save named color and font presets in your browser, layered on the channel default, and they come back when you return."
+        ],
+        "improvements": [
+          "Chat column: sits flush against the video divider with a softer glass panel instead of a boxed-in sidebar.",
+          "Personalize appearance from Theme Settings instead of Channel Settings, so you do not need mod access to tune your view."
+        ]
+      },
+      "highlights": [
+        "Theme Settings: save and load your own color and font presets in this browser.",
+        "Chat sits flush against the video with a cleaner, softer sidebar look.",
+        "Personalize the channel look from Theme Settings—no channel mod permissions needed."
+      ]
+    },
+    {
       "version": "1.6.0",
       "date": "2026-06-20",
       "summary": "A cleaner sidebar, smarter movie requests with search and chat announcements, and smoother add-media and movie tools.",
