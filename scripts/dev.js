@@ -17,6 +17,13 @@ const WATCH_PATHS = [
   "user-release-notes.json"
 ];
 
+function shouldIgnoreWatch(filename) {
+  const base = path.basename(String(filename).replace(/\\/g, "/"));
+  if (base.endsWith(".test.js")) return true;
+  if (base.endsWith(".generated.js")) return true;
+  return false;
+}
+
 function runBuild() {
   const result = spawnSync(process.execPath, ["scripts/build.js"], {
     cwd: rootDir,
@@ -67,10 +74,7 @@ function watchAndRebuild() {
       continue;
     }
     fs.watch(target, { recursive: true }, (_event, filename) => {
-      if (!filename) {
-        return;
-      }
-      if (filename.endsWith(".test.js")) {
+      if (!filename || shouldIgnoreWatch(filename)) {
         return;
       }
       schedule();
