@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.8.0...v1.8.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* **chat:** apply hover-magnify to animated GIF channel emotes ([#101](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/101)) ([1483299](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/14832990fde01b99d7e704561dc4a4051e935221)), closes [#98](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/98)
+
 # [1.8.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.7.0...v1.8.0) (2026-06-21)
 
 
