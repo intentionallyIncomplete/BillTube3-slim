@@ -468,6 +468,132 @@
 }
 .button.btfw-chatbtn{ display:inline-flex; align-items:center; gap:6px; }
 
+/* Channel drink counter (CyTube drinkCount socket) */
+.btfw-drink-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px 2px 4px;
+  border-radius: var(--btfw-radius);
+  background: color-mix(in srgb, var(--btfw-color-panel) 85%, transparent 15%);
+  border: 1px solid color-mix(in srgb, var(--btfw-border) 60%, transparent 40%);
+  flex-shrink: 0;
+}
+
+.btfw-drink-counter.is-hidden {
+  display: none;
+}
+
+.btfw-drink-counter__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #f5c16c 0%, #e8a84b 100%);
+  box-shadow: inset 0 -2px 4px color-mix(in srgb, #3d2914 25%, transparent 75%);
+  transition: filter 1.2s ease, transform 1.2s ease;
+}
+
+.btfw-drink-counter__face {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.btfw-drink-counter__face::before,
+.btfw-drink-counter__face::after {
+  content: "";
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #3d2914;
+  border-radius: 50%;
+  top: 10px;
+  transition: transform 1s ease, height 1s ease, top 1s ease;
+}
+
+.btfw-drink-counter__face::before { left: 7px; }
+.btfw-drink-counter__face::after { right: 7px; }
+
+.btfw-drink-counter__avatar::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 7px;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 4px;
+  border-bottom: 2px solid #3d2914;
+  border-radius: 0 0 8px 8px;
+  transition: transform 1s ease;
+}
+
+.btfw-drink-counter[data-tier="flush"] .btfw-drink-counter__avatar {
+  filter: sepia(0.35) saturate(1.4) hue-rotate(-15deg);
+  box-shadow: inset 0 0 8px color-mix(in srgb, #dc3c3c 35%, transparent 65%);
+}
+
+.btfw-drink-counter[data-tier="droopy"] .btfw-drink-counter__avatar {
+  filter: sepia(0.45) saturate(1.3) hue-rotate(-12deg);
+  transform: rotate(-6deg);
+}
+
+.btfw-drink-counter[data-tier="droopy"] .btfw-drink-counter__face::before,
+.btfw-drink-counter[data-tier="droopy"] .btfw-drink-counter__face::after {
+  height: 2px;
+  top: 11px;
+  border-radius: 2px;
+}
+
+.btfw-drink-counter[data-tier="sick"] .btfw-drink-counter__avatar {
+  filter: sepia(0.3) hue-rotate(70deg) saturate(1.2);
+  animation: btfw-drink-sway 2.5s ease-in-out infinite;
+}
+
+.btfw-drink-counter[data-tier="hungover"] .btfw-drink-counter__avatar {
+  filter: grayscale(0.55) brightness(0.85) contrast(0.95);
+  animation: btfw-drink-bob 3s ease-in-out infinite;
+  transform: rotate(4deg);
+}
+
+@keyframes btfw-drink-sway {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+
+@keyframes btfw-drink-bob {
+  0%, 100% { transform: translateY(0) rotate(4deg); }
+  50% { transform: translateY(2px) rotate(2deg); }
+}
+
+.btfw-drink-counter--reduce-motion .btfw-drink-counter__avatar,
+.btfw-drink-counter.btfw-drink-counter--reduce-motion .btfw-drink-counter__avatar {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btfw-drink-counter__avatar {
+    animation: none !important;
+    transition: none;
+  }
+}
+
+.btfw-drink-counter__count {
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--btfw-color-chat-text);
+  min-width: 1ch;
+  line-height: 1;
+}
+
+#drinkbarwrap[hidden],
+#drinkbar[hidden] {
+  display: none !important;
+}
+
 /* Bottom bar should not have margin-bottom to avoid extra space */
 #chatwrap .btfw-chat-bottombar:last-child {
   margin-bottom: 0;
