@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.8.2...v1.9.0) (2026-06-23)
+
+
+### Features
+
+* **chat:** add channel drink counter to chat action bar ([#104](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/104)) ([645d077](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/645d077737e068352358b87e7d6fd06598d5ac08)), closes [#100](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/100)
+
 ## [1.8.2](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.8.1...v1.8.2) (2026-06-23)
 
 ## [1.8.1](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.8.0...v1.8.1) (2026-06-23)
