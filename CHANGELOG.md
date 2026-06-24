@@ -1,3 +1,10 @@
+## [1.10.1](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.10.0...v1.10.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* **stack:** show MOTD content in stack panel ([#106](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/106)) ([d7dcf63](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/d7dcf639c687ccced00b8fba84cc9340232034af)), closes [#motdwrap](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/motdwrap) [#motd](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/motd)
+
 # [1.10.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.9.0...v1.10.0) (2026-06-24)
 
 
