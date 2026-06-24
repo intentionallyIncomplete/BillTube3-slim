@@ -7,7 +7,7 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
   const STACK_VISIBILITY = {
     "motd-group": {
       storageKey: MOTD_VISIBILITY_KEY,
-      getDefaultOpen: (stored) => getDefaultPollOpen(stored, true),
+      getDefaultOpen: (stored) => getDefaultPollOpen(stored, hasMotdContent()),
       toggleClass: "btfw-motd-toggle",
       ariaLabel: "Toggle message of the day visibility",
       openTitle: "Hide message of the day",
@@ -34,6 +34,8 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
   let pollSyncTimer = null;
   let pollObserverWired = false;
   let pollSocketWired = false;
+  let motdSyncTimer = null;
+  let motdObserverWired = false;
   let populateActive = false;
   let populateTimer = null;
 
@@ -44,6 +46,13 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
       doc.querySelector("#pollwrap .well.muted") ||
       doc.querySelector("#pollwrap .poll-menu")
     );
+  }
+
+  function hasMotdContent(doc = document) {
+    if (!doc || typeof doc.querySelector !== "function") return false;
+    const motd = doc.querySelector("#motd");
+    if (!motd) return false;
+    return Boolean((motd.innerHTML || "").trim());
   }
 
   function getDefaultPollOpen(stored, hasContent) {
@@ -747,6 +756,70 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
     return pollWrap;
   }
 
+  function ensureMotdStackPanel(refs) {
+    mergeMotdElements();
+
+    const motdwrap = document.getElementById("motdwrap");
+    if (!motdwrap) return;
+
+    const list = refs && refs.list;
+    if (!list) return;
+
+    let motdGroup = document.querySelector('.btfw-stack-item[data-bind="motd-group"]');
+    if (!motdGroup) {
+      const group = GROUPS.find((g) => g.id === "motd-group");
+      if (!group) return;
+      motdGroup = createGroupItem(group, [motdwrap]);
+      if (motdGroup) {
+        list.appendChild(motdGroup);
+        save(list);
+      }
+    } else {
+      const body = motdGroup.querySelector(".btfw-group-body");
+      if (body && !body.contains(motdwrap)) {
+        body.appendChild(motdwrap);
+      }
+    }
+
+    syncMotdWrapVisibility();
+  }
+
+  function syncMotdWrapVisibility() {
+    const motdwrap = document.getElementById("motdwrap");
+    if (!motdwrap) return;
+
+    const hasContent = hasMotdContent();
+    motdwrap.classList.toggle("btfw-motd-empty", !hasContent);
+    motdwrap.toggleAttribute("hidden", !hasContent);
+    motdwrap.setAttribute("aria-hidden", hasContent ? "false" : "true");
+
+    if (hasContent) {
+      motdwrap.style.removeProperty("display");
+      const motd = document.getElementById("motd");
+      if (motd) motd.style.removeProperty("display");
+    }
+  }
+
+  function scheduleMotdSync(refs) {
+    if (motdSyncTimer) clearTimeout(motdSyncTimer);
+    motdSyncTimer = setTimeout(() => {
+      motdSyncTimer = null;
+      ensureMotdStackPanel(refs);
+    }, 50);
+  }
+
+  function wireMotdObservers(refs) {
+    if (motdObserverWired) return;
+    const motd = document.getElementById("motd");
+    if (!motd) return;
+    motdObserverWired = true;
+
+    const observer = new MutationObserver(() => {
+      scheduleMotdSync(refs);
+    });
+    observer.observe(motd, { childList: true, subtree: true, characterData: true });
+  }
+
   function ensurePollStackPanel(refs) {
     const pollWrap = document.getElementById("pollwrap");
     if (!pollWrap) return;
@@ -1018,6 +1091,7 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
     });
     
     save(list);
+    ensureMotdStackPanel(refs);
     ensurePollStackPanel(refs);
     syncPollWrapVisibility();
     relocateStackHeaderActions();
@@ -1031,6 +1105,7 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
   const refs=ensureStack();
   if(!refs) return;
   populate(refs);
+  wireMotdObservers(refs);
   wirePollObservers(refs);
   wirePollSocket(refs);
     const observer=new MutationObserver(() => {
@@ -1050,6 +1125,14 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
     observer.observe(main, {childList:true, subtree:false});
   }
   setTimeout(() => {
+    const motdGroup = document.querySelector('.btfw-stack-item[data-bind="motd-group"]');
+    if (motdGroup) {
+      const storedMotd = getStoredVisibility(MOTD_VISIBILITY_KEY);
+      const shouldMotdOpen = getDefaultPollOpen(storedMotd, hasMotdContent());
+      motdGroup.dataset.open = shouldMotdOpen ? "true" : "false";
+      motdGroup.classList.toggle("is-open", shouldMotdOpen);
+    }
+
     const playlistGroup = document.querySelector('.btfw-stack-item[data-bind="playlist-group"]');
     if (playlistGroup) {
       const storedVisibility = getStoredPlaylistVisibility();
@@ -1067,6 +1150,7 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
     }
 
     syncPollPanelVisibility(refs);
+    ensureMotdStackPanel(refs);
   }, 1000);
   let n=0;
   const iv=setInterval(()=>{
@@ -1086,6 +1170,7 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
   });
 
   return {
-    name:"feature:stack"
+    name: "feature:stack",
+    hasMotdContent,
   };
 });
