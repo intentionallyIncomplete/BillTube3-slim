@@ -514,6 +514,42 @@
   filter: drop-shadow(0 2px 6px oklch(0 0 0 / 0.25));
 }
 
+.btfw-drink-counter__face-base {
+  transition: fill 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btfw-drink-counter__blush-l,
+.btfw-drink-counter__blush-r {
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btfw-drink-counter__star-eyes {
+  transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  user-select: none;
+}
+
+.btfw-drink-counter[data-intox-tier="4"] .btfw-drink-counter__eye-l,
+.btfw-drink-counter[data-intox-tier="4"] .btfw-drink-counter__eye-r,
+.btfw-drink-counter[data-intox-tier="5"] .btfw-drink-counter__eye-l,
+.btfw-drink-counter[data-intox-tier="5"] .btfw-drink-counter__eye-r {
+  opacity: 0;
+}
+
+.btfw-drink-counter[data-intox-tier="5"]:not(.is-drinking) .btfw-drink-counter__face-wrap {
+  animation: btfw-drink-wobble 2.8s ease-in-out infinite;
+}
+
+@keyframes btfw-drink-wobble {
+  0%, 100% { transform: translateX(-50%) rotate(0deg); }
+  25% { transform: translateX(calc(-50% - 1px)) rotate(-3deg); }
+  75% { transform: translateX(calc(-50% + 1px)) rotate(3deg); }
+}
+
+.btfw-drink-counter[data-intox-tier="5"].is-drinking .btfw-drink-counter__face-wrap.is-tilted {
+  animation: none;
+}
+
 .btfw-drink-counter__mouth-outline {
   transition: d 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -609,16 +645,20 @@
 .btfw-drink-counter--reduce-motion .btfw-drink-counter__face-wrap,
 .btfw-drink-counter--reduce-motion .btfw-drink-counter__glass-wrap,
 .btfw-drink-counter--reduce-motion .btfw-drink-counter__mouth-beer,
-.btfw-drink-counter--reduce-motion .btfw-drink-counter__stream-path {
+.btfw-drink-counter--reduce-motion .btfw-drink-counter__stream-path,
+.btfw-drink-counter--reduce-motion[data-intox-tier="5"] .btfw-drink-counter__face-wrap {
   transition: none !important;
+  animation: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .btfw-drink-counter__face-wrap,
   .btfw-drink-counter__glass-wrap,
   .btfw-drink-counter__mouth-beer,
-  .btfw-drink-counter__stream-path {
+  .btfw-drink-counter__stream-path,
+  .btfw-drink-counter[data-intox-tier="5"] .btfw-drink-counter__face-wrap {
     transition: none !important;
+    animation: none !important;
   }
 }
 

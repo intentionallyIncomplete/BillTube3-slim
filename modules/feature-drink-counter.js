@@ -3,6 +3,10 @@ BTFW.define("feature:drink-counter", [], async () => {
   const motion = await BTFW.init("util:motion");
 
   const MAX_DRINK_ANIMS = 5;
+  const INTOX_THRESHOLDS = [5, 15, 20, 30, 50];
+  const INTOX_SKIN = ["#f5c07a", "#f2ad60", "#eda84e", "#e89638", "#e07820", "#d45c0a"];
+  const INTOX_BLUSH = [0, 0.38, 0.58, 0.74, 0.88, 0.96];
+  const INTOX_EYE_SQUINT = [1, 1, 0.82, 0.62, 0.48, 0.38];
 
   const POUR_TIMING = {
     tiltSettle: 300,
@@ -43,6 +47,8 @@ BTFW.define("feature:drink-counter", [], async () => {
         </defs>
         <circle class="btfw-drink-counter__face-base" cx="50" cy="50" r="46" fill="#f5c07a" />
         <ellipse cx="36" cy="30" rx="12" ry="8" fill="rgba(255,255,255,0.18)" />
+        <ellipse class="btfw-drink-counter__blush-l" cx="20" cy="65" rx="11" ry="7" fill="#e8998d" opacity="0" />
+        <ellipse class="btfw-drink-counter__blush-r" cx="80" cy="65" rx="11" ry="7" fill="#e8998d" opacity="0" />
         <g class="btfw-drink-counter__eye-l">
           <circle cx="33" cy="44" r="7" fill="#1a1109" />
           <circle cx="35" cy="42" r="2.2" fill="white" />
@@ -50,6 +56,10 @@ BTFW.define("feature:drink-counter", [], async () => {
         <g class="btfw-drink-counter__eye-r">
           <circle cx="67" cy="44" r="7" fill="#1a1109" />
           <circle cx="69" cy="42" r="2.2" fill="white" />
+        </g>
+        <g class="btfw-drink-counter__star-eyes" opacity="0">
+          <text x="33" y="47" font-size="13" text-anchor="middle" dominant-baseline="middle">⭐</text>
+          <text x="67" y="47" font-size="13" text-anchor="middle" dominant-baseline="middle">⭐</text>
         </g>
         <path class="btfw-drink-counter__brow-l" d="M22 33 Q33 28 42 31" fill="none" stroke="#5c3d11" stroke-width="3.2" stroke-linecap="round" />
         <path class="btfw-drink-counter__brow-r" d="M58 31 Q67 28 78 33" fill="none" stroke="#5c3d11" stroke-width="3.2" stroke-linecap="round" />
@@ -76,6 +86,29 @@ BTFW.define("feature:drink-counter", [], async () => {
   function drinkAnimationCount(prev, next) {
     if (prev === null || next <= prev) return 0;
     return Math.min(next - prev, MAX_DRINK_ANIMS);
+  }
+
+  function intoxTierForCount(count) {
+    const n = Math.max(0, Number(count) || 0);
+    let tier = 0;
+    for (const threshold of INTOX_THRESHOLDS) {
+      if (n >= threshold) tier += 1;
+    }
+    return tier;
+  }
+
+  const BROW_IDLE = [
+    ["M22 33 Q33 28 42 31", "M58 31 Q67 28 78 33"],
+    ["M22 34 Q33 30 42 32", "M58 32 Q67 30 78 34"],
+    ["M22 35 Q33 32 42 34", "M58 34 Q67 32 78 35"],
+    ["M22 36 Q33 34 42 36", "M58 36 Q67 34 78 36"],
+  ];
+
+  function browPathsForTier(tier) {
+    if (tier >= 5) return BROW_IDLE[3];
+    if (tier >= 3) return BROW_IDLE[2];
+    if (tier >= 2) return BROW_IDLE[1];
+    return BROW_IDLE[0];
   }
 
   function hideStockDrinkbar() {
@@ -108,7 +141,39 @@ BTFW.define("feature:drink-counter", [], async () => {
       browR: widget.querySelector(".btfw-drink-counter__brow-r"),
       eyeL: widget.querySelector(".btfw-drink-counter__eye-l"),
       eyeR: widget.querySelector(".btfw-drink-counter__eye-r"),
+      starEyes: widget.querySelector(".btfw-drink-counter__star-eyes"),
+      faceBase: widget.querySelector(".btfw-drink-counter__face-base"),
+      blushL: widget.querySelector(".btfw-drink-counter__blush-l"),
+      blushR: widget.querySelector(".btfw-drink-counter__blush-r"),
     };
+  }
+
+  function applyIntoxVisuals(widget, count) {
+    if (!widget) return;
+
+    const tier = intoxTierForCount(count);
+    widget.dataset.intoxTier = String(tier);
+
+    const els = getPourEls(widget);
+    const skin = INTOX_SKIN[tier] ?? INTOX_SKIN[0];
+    const blush = INTOX_BLUSH[tier] ?? 0;
+    const eyeSquint = INTOX_EYE_SQUINT[tier] ?? 1;
+    const [browL, browR] = browPathsForTier(tier);
+
+    els.faceBase?.setAttribute("fill", skin);
+    els.blushL?.setAttribute("opacity", String(blush));
+    els.blushR?.setAttribute("opacity", String(blush));
+    els.browL?.setAttribute("d", browL);
+    els.browR?.setAttribute("d", browR);
+
+    const showStars = tier >= 4;
+    if (els.starEyes) els.starEyes.setAttribute("opacity", showStars ? "1" : "0");
+
+    if (!widget.classList.contains("is-drinking")) {
+      const eyeTransform = showStars ? "scaleY(0.1)" : `scaleY(${eyeSquint})`;
+      if (els.eyeL) els.eyeL.style.transform = eyeTransform;
+      if (els.eyeR) els.eyeR.style.transform = eyeTransform;
+    }
   }
 
   function openMouth(els) {
@@ -154,6 +219,11 @@ BTFW.define("feature:drink-counter", [], async () => {
     if (els.mouthFoam) els.mouthFoam.setAttribute("opacity", "0");
     if (els.eyeL) els.eyeL.style.transform = "";
     if (els.eyeR) els.eyeR.style.transform = "";
+  }
+
+  function closeMouthAndRestoreIntox(widget, els) {
+    closeMouth(els);
+    applyIntoxVisuals(widget, currentCount);
   }
 
   function resetPourStream(els) {
@@ -221,11 +291,12 @@ BTFW.define("feature:drink-counter", [], async () => {
       await delay(POUR_TIMING.beforeClose);
       if (!widget.isConnected) return;
 
-      closeMouth(els);
+      closeMouthAndRestoreIntox(widget, els);
 
       await delay(POUR_TIMING.afterClose);
     } finally {
       widget.classList.remove("is-drinking");
+      applyIntoxVisuals(widget, currentCount);
       done();
     }
   }
@@ -270,6 +341,8 @@ BTFW.define("feature:drink-counter", [], async () => {
     const label = n === 1 ? "1 drink" : `${n} drinks`;
     widget.setAttribute("aria-label", `Channel drinks: ${label}`);
     widget.title = label;
+
+    applyIntoxVisuals(widget, n);
 
     if (animCount > 0) {
       playDrinkAnimations(widget, animCount);
@@ -353,5 +426,5 @@ BTFW.define("feature:drink-counter", [], async () => {
     boot();
   }
 
-  return { name: "feature:drink-counter", updateCount, drinkAnimationCount };
+  return { name: "feature:drink-counter", updateCount, drinkAnimationCount, intoxTierForCount };
 });

@@ -1,9 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+const INTOX_THRESHOLDS = [5, 15, 20, 30, 50];
+
 function drinkAnimationCount(prev, next, max = 5) {
   if (prev === null || next <= prev) return 0;
   return Math.min(next - prev, max);
+}
+
+function intoxTierForCount(count) {
+  const n = Math.max(0, Number(count) || 0);
+  let tier = 0;
+  for (const threshold of INTOX_THRESHOLDS) {
+    if (n >= threshold) tier += 1;
+  }
+  return tier;
 }
 
 test("drink animation count on increment", () => {
@@ -16,4 +27,19 @@ test("drink animation count on increment", () => {
 test("drink animation count ignores decrease or flat", () => {
   assert.equal(drinkAnimationCount(5, 5), 0);
   assert.equal(drinkAnimationCount(5, 0), 0);
+});
+
+test("intox tier thresholds", () => {
+  assert.equal(intoxTierForCount(0), 0);
+  assert.equal(intoxTierForCount(4), 0);
+  assert.equal(intoxTierForCount(5), 1);
+  assert.equal(intoxTierForCount(14), 1);
+  assert.equal(intoxTierForCount(15), 2);
+  assert.equal(intoxTierForCount(19), 2);
+  assert.equal(intoxTierForCount(20), 3);
+  assert.equal(intoxTierForCount(29), 3);
+  assert.equal(intoxTierForCount(30), 4);
+  assert.equal(intoxTierForCount(49), 4);
+  assert.equal(intoxTierForCount(50), 5);
+  assert.equal(intoxTierForCount(120), 5);
 });
