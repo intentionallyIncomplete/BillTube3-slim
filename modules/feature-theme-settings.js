@@ -274,6 +274,14 @@ BTFW.define("feature:themeSettings", ["util:themeRuntime", "util:themePresets"],
     document.dispatchEvent(new CustomEvent("btfw:chat:emoteSizeChanged", { detail:{ size, px } }));
   }
 
+  function persistImageHoverMagnify(modal) {
+    const on = $("#btfw-image-hover-magnify", modal)?.checked;
+    set(TS_KEYS.imageHoverMagnify, on ? "1" : "0");
+    document.dispatchEvent(new CustomEvent("btfw:chat:imageHoverMagnifyChanged", {
+      detail: { enabled: !!on }
+    }));
+  }
+
   const moduleCache = new Map();
   function getModule(name){
     if (moduleCache.has(name)) return moduleCache.get(name);
@@ -632,6 +640,12 @@ BTFW.define("feature:themeSettings", ["util:themeRuntime", "util:themePresets"],
     // Apply button
     $("#btfw-ts-apply", m).addEventListener("click", applyAndPersist);
 
+    const hoverMagnifyInput = $("#btfw-image-hover-magnify", m);
+    if (hoverMagnifyInput && !hoverMagnifyInput._btfwHoverMagnifyBound) {
+      hoverMagnifyInput._btfwHoverMagnifyBound = true;
+      hoverMagnifyInput.addEventListener("change", () => persistImageHoverMagnify(m));
+    }
+
     const chatTextSlider = $("#btfw-chat-textsize", m);
     const chatTextValue  = $("#btfw-chat-textsize-value", m);
     if (chatTextSlider && chatTextValue) {
@@ -767,38 +781,42 @@ BTFW.define("feature:themeSettings", ["util:themeRuntime", "util:themePresets"],
 
   function open(){
     const m = ensureModal();
+    const reopening = m.dataset.btfwModalState !== "open";
 
-    const avatarSelect = $("#btfw-avatars-mode", m);
-    const storedAv = get(TS_KEYS.avatarsMode,"big");
-    const avNow = avatarsModule?.getMode ? avatarsModule.getMode() : storedAv;
-    if (avatarSelect) {
-      avatarSelect.value = ["off","small","big"].includes(avNow) ? avNow : "big";
-    }
-    resolveAvatars().then(mod => {
-      if (mod?.getMode && avatarSelect) {
-        const live = mod.getMode();
-        avatarSelect.value = ["off","small","big"].includes(live) ? live : avatarSelect.value;
+    if (reopening) {
+      const avatarSelect = $("#btfw-avatars-mode", m);
+      const storedAv = get(TS_KEYS.avatarsMode,"big");
+      const avNow = avatarsModule?.getMode ? avatarsModule.getMode() : storedAv;
+      if (avatarSelect) {
+        avatarSelect.value = ["off","small","big"].includes(avNow) ? avNow : "big";
       }
-    });
+      resolveAvatars().then(mod => {
+        if (mod?.getMode && avatarSelect) {
+          const live = mod.getMode();
+          avatarSelect.value = ["off","small","big"].includes(live) ? live : avatarSelect.value;
+        }
+      });
 
-    const chatPxNow = get(TS_KEYS.chatTextPx, "14");
-    const chatSlider = $("#btfw-chat-textsize");
-    if (chatSlider) chatSlider.value = chatPxNow;
-    const chatLabel = $("#btfw-chat-textsize-value");
-    if (chatLabel) chatLabel.textContent = `${chatPxNow}px`;
-    $("#btfw-emote-size").value   = get(TS_KEYS.emoteSize,   "medium");
-    $("#btfw-gif-autoplay").checked = get(TS_KEYS.gifAutoplay, "1") === "1";
-    $("#btfw-image-hover-magnify").checked = get(TS_KEYS.imageHoverMagnify, "0") === "1";
-    $("#btfw-chat-join-notices").checked = get(TS_KEYS.chatJoinNotices, "1") === "1";
-    $("#btfw-localsubs-toggle").checked = get(TS_KEYS.localSubs, "1") === "1";
-    const bc = $("#btfw-billcast-toggle"); if (bc) bc.checked = get(TS_KEYS.billcastEnabled, "1") === "1";
-    const layoutSelect = $("#btfw-chat-side", m);
-    const sideNow = get(TS_KEYS.layoutSide, "right");
-    if (layoutSelect) layoutSelect.value = ["left","right"].includes(sideNow) ? sideNow : "right";
+      const chatPxNow = get(TS_KEYS.chatTextPx, "14");
+      const chatSlider = $("#btfw-chat-textsize", m);
+      if (chatSlider) chatSlider.value = chatPxNow;
+      const chatLabel = $("#btfw-chat-textsize-value", m);
+      if (chatLabel) chatLabel.textContent = `${chatPxNow}px`;
+      $("#btfw-emote-size", m).value   = get(TS_KEYS.emoteSize,   "medium");
+      $("#btfw-gif-autoplay", m).checked = get(TS_KEYS.gifAutoplay, "1") === "1";
+      $("#btfw-image-hover-magnify", m).checked = get(TS_KEYS.imageHoverMagnify, "0") === "1";
+      $("#btfw-chat-join-notices", m).checked = get(TS_KEYS.chatJoinNotices, "1") === "1";
+      $("#btfw-localsubs-toggle", m).checked = get(TS_KEYS.localSubs, "1") === "1";
+      const bc = $("#btfw-billcast-toggle", m);
+      if (bc) bc.checked = get(TS_KEYS.billcastEnabled, "1") === "1";
+      const layoutSelect = $("#btfw-chat-side", m);
+      const sideNow = get(TS_KEYS.layoutSide, "right");
+      if (layoutSelect) layoutSelect.value = ["left","right"].includes(sideNow) ? sideNow : "right";
 
-    if (typeof m._btfwRenderIgnoreList === "function") m._btfwRenderIgnoreList();
+      if (typeof m._btfwRenderIgnoreList === "function") m._btfwRenderIgnoreList();
 
-    onGeneralTabOpen();
+      onGeneralTabOpen();
+    }
 
     motion.openModal(m);
     document.dispatchEvent(new CustomEvent("btfw:themeSettings:open"));
