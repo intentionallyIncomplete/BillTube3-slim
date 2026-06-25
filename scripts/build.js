@@ -109,6 +109,7 @@ const bundles = [
       'modules/feature-emotes.js',
       'modules/feature-emoji-compat.js',
       'modules/feature-emoji-loader.js',
+      'modules/util-giphy-proxy.js',
       'modules/feature-gifs.js',
       'modules/feature-poll-overlay.js',
       'modules/feature-notify.js',

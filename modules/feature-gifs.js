@@ -1,20 +1,10 @@
 
-BTFW.define("feature:gifs", [], async () => {
+BTFW.define("feature:gifs", ["util:giphy-proxy"], async ({ init }) => {
   const $  = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
   const PER_PAGE = 12;
   const motion = await BTFW.init("util:motion");
-
-  const K = { giphy: "btfw:giphy:key" };
-  const DEFAULT_GIPHY = "bb2006d9d3454578be1a99cfad65913d";
-
-  function getKey(which) {
-    try { return (localStorage.getItem(K[which]) || "").trim(); } catch (_) { return ""; }
-  }
-  function effKey(which, fallback) {
-    const v = getKey(which);
-    return v || fallback;
-  }
+  const giphyProxy = await init("util:giphy-proxy");
 
   const state = {
     provider: "giphy",  // "giphy" | "favorites"
@@ -158,19 +148,10 @@ BTFW.define("feature:gifs", [], async () => {
   }
 
   async function fetchGiphy(q){
-    const key = effKey("giphy", DEFAULT_GIPHY);
-    const endpoint = q ? "https://api.giphy.com/v1/gifs/search"
-                       : "https://api.giphy.com/v1/gifs/trending";
-    const url = new URL(endpoint);
-    url.searchParams.set("api_key", key);
-    if (q) url.searchParams.set("q", q);
-    url.searchParams.set("limit", "50");
-    url.searchParams.set("rating", "pg-13");
+    const params = { limit: "50", rating: "pg-13" };
+    if (q) params.q = q;
 
-    const res = await fetch(url.toString());
-    if (!res.ok) throw new Error(`GIPHY_${res.status}`);
-
-    const json = await res.json();
+    const json = await giphyProxy.giphyFetch(q ? "search" : "trending", params);
     const list = (json.data || []).map(g => {
       const id    = g.id || ""; // always present
       const thumb = (g.images && (g.images.fixed_width_small?.url
@@ -208,7 +189,7 @@ BTFW.define("feature:gifs", [], async () => {
       state.items = [];
       state.total = 0;
       state.loading = false;
-      showNotice("Failed to load GIFs (key limit or network). Try again, or set your own keys in localStorage.");
+      showNotice("Failed to load GIFs (proxy unavailable or network). Try again later.");
       render();
     }
   }
