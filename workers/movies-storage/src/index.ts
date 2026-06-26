@@ -8,12 +8,14 @@
  * New API:
  *   GET  /api/search, /api/history, /api/genres, /api/meta
  *   GET  /api/tmdb/{tmdb-path}  → TMDB proxy (server-side API key)
+ *   GET  /api/giphy/search, /api/giphy/trending  → Giphy proxy (server-side API key)
  *   POST /api/suggestions
  */
 
 export interface Env {
   MOVIE_SUGGESTIONS: KVNamespace;
   TMDB_API_KEY: string;
+  GIPHY_API_KEY?: string;
   ALLOWED_ORIGINS?: string;
 }
 
@@ -148,6 +150,14 @@ function requireTmdbKey(env: Env): string {
   return key;
 }
 
+function requireGiphyKey(env: Env): string {
+  const key = (env.GIPHY_API_KEY || "").trim();
+  if (!key) {
+    throw new Error("GIPHY_API_KEY is not configured on the worker");
+  }
+  return key;
+}
+
 async function tmdbFetch<T>(env: Env, path: string, params: Record<string, string | number | boolean | undefined>): Promise<T> {
   const apiKey = requireTmdbKey(env);
   const url = new URL(`https://api.themoviedb.org/3${path}`);
@@ -164,6 +174,27 @@ async function tmdbFetch<T>(env: Env, path: string, params: Record<string, strin
   if (!response.ok) {
     const body = await response.text();
     throw new Error(`TMDB ${response.status}: ${body.slice(0, 240)}`);
+  }
+
+  return response.json() as Promise<T>;
+}
+
+async function giphyFetch<T>(env: Env, path: string, params: Record<string, string | number | boolean | undefined>): Promise<T> {
+  const apiKey = requireGiphyKey(env);
+  const url = new URL(`https://api.giphy.com/v1/gifs/${path}`);
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === "") continue;
+    url.searchParams.set(key, String(value));
+  }
+  url.searchParams.set("api_key", apiKey);
+
+  const response = await fetch(url.toString(), {
+    headers: { accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Giphy ${response.status}: ${body.slice(0, 240)}`);
   }
 
   return response.json() as Promise<T>;
@@ -268,6 +299,20 @@ function isAllowedTmdbPath(path: string): boolean {
   const normalized = path.replace(/^\/+/, "").toLowerCase();
   if (!normalized || normalized.includes("..")) return false;
   return ALLOWED_TMDB_PREFIXES.some((prefix) => normalized.startsWith(prefix));
+}
+
+async function handleGiphyProxy(env: Env, requestUrl: URL, endpoint: "search" | "trending", corsOrigin: string | null): Promise<Response> {
+  const params: Record<string, string | number | boolean | undefined> = {};
+  requestUrl.searchParams.forEach((value, key) => {
+    if (key === "api_key") return;
+    params[key] = value;
+  });
+
+  if (!params.rating) params.rating = "pg-13";
+  if (!params.limit) params.limit = "50";
+
+  const data = await giphyFetch(env, endpoint, params);
+  return json(data, {}, corsOrigin);
 }
 
 async function handleTmdbProxy(env: Env, requestUrl: URL, tmdbPath: string, corsOrigin: string | null): Promise<Response> {
@@ -473,6 +518,14 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       return handleTmdbProxy(env, url, tmdbPath, corsOrigin);
     }
 
+    if (request.method === "GET" && path === "/api/giphy/search") {
+      return handleGiphyProxy(env, url, "search", corsOrigin);
+    }
+
+    if (request.method === "GET" && path === "/api/giphy/trending") {
+      return handleGiphyProxy(env, url, "trending", corsOrigin);
+    }
+
     if (request.method === "POST" && path === "/api/suggestions") {
       return handleCreateSuggestion(request, env, corsOrigin, false);
     }
@@ -481,7 +534,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal server error";
     console.error("[movies-storage]", message);
-    const status = message.includes("TMDB_API_KEY") ? 503 : 500;
+    const status = message.includes("TMDB_API_KEY") || message.includes("GIPHY_API_KEY") ? 503 : 500;
     return errorResponse(status, message, corsOrigin);
   }
 }
