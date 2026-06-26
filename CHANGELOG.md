@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.12.0...v1.13.0) (2026-06-26)
+
+
+### Features
+
+* **gifs:** add KLIPY provider and remove Tenor support ([#111](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/111)) ([5941cbc](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/5941cbc970bcfc16b04046e63e823002531a41c5)), closes [#110](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/110)
+
 # [1.12.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.11.0...v1.12.0) (2026-06-26)
 
 
