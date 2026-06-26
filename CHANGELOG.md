@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.11.0...v1.12.0) (2026-06-26)
+
+
+### Features
+
+* **giphy:** proxy API through movies-storage worker ([#109](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/109)) ([4332ea6](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/4332ea603bc48df32315f186350ab4a8d18bf8c0)), closes [#108](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/108)
+
 # [1.11.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.10.1...v1.11.0) (2026-06-24)
 
 
