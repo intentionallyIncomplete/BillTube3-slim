@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.13.2...v1.14.0) (2026-06-27)
+
+
+### Features
+
+* **ui:** theme icon packs for gag presets ([#115](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/115)) ([3114c41](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/3114c41e7fbbb23526f76eaaead2dbdcf2db9a18))
+
 ## [1.13.2](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.13.1...v1.13.2) (2026-06-27)
 
 
