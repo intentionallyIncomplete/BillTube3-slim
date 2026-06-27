@@ -14,11 +14,141 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
   const MIN_VIDEO_RATIO = 0.35;
   const MAX_VIDEO_RATIO = 0.78;
   const DEFAULT_VIDEO_RATIO = 0.62;
+  const VIDEO_MIN_HEIGHT_PX = 180;
 
   let videoColumnPx = null;
   let videoColumnRatio = null;
   let chatSidePref = "right";
   let isVertical = false;
+  let navAutohideActive = false;
+  let navAutohideHidden = false;
+
+  function getViewportHeight(){
+    return window.visualViewport?.height || window.innerHeight || 1440;
+  }
+
+  function isStackFullyHidden(){
+    const items = document.querySelectorAll("#btfw-stack .btfw-stack-item[data-group='true']");
+    if (!items.length) return true;
+    return Array.from(items).every((el) => el.dataset.docked === "true");
+  }
+
+  function measureOverlayHeight(){
+    const overlay = document.getElementById("btfw-video-overlay");
+    if (!overlay) return 0;
+    const style = getComputedStyle(overlay);
+    if (style.display === "none") return 0;
+    return overlay.offsetHeight || 0;
+  }
+
+  function measureVisibleStackHeight(primaryRowH){
+    if (!isVertical) return 0;
+    const stack = document.getElementById("btfw-stack");
+    if (!stack || isStackFullyHidden()) return 0;
+    const style = getComputedStyle(stack);
+    if (style.display === "none" || stack.hidden) return 0;
+
+    const videoMin = VIDEO_MIN_HEIGHT_PX;
+    const maxStack = Math.max(100, primaryRowH - videoMin - 12);
+
+    if (isVertical) {
+      return Math.min(320, Math.floor(primaryRowH * 0.34), maxStack);
+    }
+
+    const measured = stack.offsetHeight || 0;
+    return Math.min(Math.max(measured, 100), maxStack);
+  }
+
+  function getTopEffectivePx(){
+    const root = document.documentElement;
+    const navReal = parseFloat(getComputedStyle(root).getPropertyValue("--btfw-nav-real-height")) || 48;
+    return navAutohideActive && navAutohideHidden ? 0 : navReal;
+  }
+
+  function getPrimaryRowHeight(){
+    const viewportH = getViewportHeight();
+    const topEffective = getTopEffectivePx();
+    const gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--btfw-gap")) || 10;
+    return Math.max(0, viewportH - topEffective - gap * 2);
+  }
+
+  function applyViewportBudget(){
+    const root = document.documentElement;
+    const topEffective = getTopEffectivePx();
+    const gap = parseFloat(getComputedStyle(root).getPropertyValue("--btfw-gap")) || 10;
+    const primaryRowH = getPrimaryRowHeight();
+    const stackReserved = measureVisibleStackHeight(primaryRowH);
+
+    root.style.setProperty("--btfw-top-effective", `${topEffective}px`);
+    root.style.setProperty("--btfw-primary-budget", `${Math.floor(primaryRowH)}px`);
+    root.style.setProperty("--btfw-primary-row-h", `${Math.floor(primaryRowH)}px`);
+    root.style.setProperty("--btfw-stack-max-h", stackReserved > 0 ? `${stackReserved}px` : "0px");
+
+    const leftpad = document.getElementById("btfw-leftpad");
+    const colW = isVertical
+      ? Math.max(0, window.innerWidth - gap * 2)
+      : (leftpad?.getBoundingClientRect().width || window.innerWidth * DEFAULT_VIDEO_RATIO);
+    const aspectCap = colW * (9 / 16);
+
+    let videoMaxH;
+    const overlayH = !isVertical ? measureOverlayHeight() : 0;
+    if (!isVertical) {
+      root.style.setProperty("--btfw-stack-max-h", "none");
+      videoMaxH = primaryRowH - overlayH - (overlayH > 0 ? gap : 0);
+      videoMaxH = Math.min(videoMaxH, aspectCap);
+    } else {
+      const chatMin = 220;
+      const pairBudget = primaryRowH - stackReserved - gap * 2;
+      videoMaxH = Math.min(
+        pairBudget - chatMin,
+        aspectCap,
+        Math.floor(pairBudget * 0.55)
+      );
+    }
+
+    videoMaxH = Math.max(VIDEO_MIN_HEIGHT_PX, Math.floor(videoMaxH));
+    root.style.setProperty("--btfw-video-max-h", `${videoMaxH}px`);
+  }
+
+  function alignPrimaryRowBottoms(){
+    if (!isVertical) return;
+    const viewportH = getViewportHeight();
+    const margin = 2;
+    const root = document.documentElement;
+    const chat = document.getElementById("btfw-chatcol");
+    const leftpad = document.getElementById("btfw-leftpad");
+    const grid = document.getElementById("btfw-grid");
+
+    const targets = [chat, leftpad, grid].filter(Boolean);
+    const maxBottom = Math.max(...targets.map((el) => el.getBoundingClientRect().bottom));
+    if (maxBottom <= viewportH - margin) return;
+
+    const overflow = maxBottom - (viewportH - margin);
+    const currentStack = parseFloat(getComputedStyle(root).getPropertyValue("--btfw-stack-max-h")) || 0;
+    const currentVideo = parseFloat(getComputedStyle(root).getPropertyValue("--btfw-video-max-h")) || 0;
+
+    if (currentStack > 100) {
+      root.style.setProperty("--btfw-stack-max-h", `${Math.max(80, Math.floor(currentStack - overflow))}px`);
+      applyViewportBudget();
+      refreshVideoSizing();
+      return;
+    }
+
+    if (currentVideo > VIDEO_MIN_HEIGHT_PX) {
+      root.style.setProperty("--btfw-video-max-h", `${Math.max(VIDEO_MIN_HEIGHT_PX, Math.floor(currentVideo - overflow))}px`);
+      refreshVideoSizing();
+    }
+  }
+
+  function syncStackLayoutClasses(detail = {}){
+    const grid = document.getElementById("btfw-grid");
+    const leftpad = document.getElementById("btfw-leftpad");
+    const stack = document.getElementById("btfw-stack");
+    const allHidden = detail.allHidden ?? isStackFullyHidden();
+    if (grid) grid.classList.toggle("btfw-grid--stack-hidden", allHidden);
+    if (leftpad) leftpad.classList.toggle("btfw-leftpad--stack-hidden", allHidden);
+    if (stack) stack.classList.toggle("btfw-stack--all-hidden", allHidden);
+  }
 
   function refreshVideoSizing(){
     const wrap = document.getElementById("videowrap");
@@ -184,9 +314,10 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
     stack.classList.remove("btfw-stack--in-chat");
     const left = document.getElementById("btfw-leftpad");
     if (!left) return;
+    const stage = document.getElementById("btfw-video-stage");
     const video = document.getElementById("videowrap");
     const overlay = document.getElementById("btfw-video-overlay");
-    const anchor = (overlay && overlay.parentElement === left) ? overlay : video;
+    const anchor = stage || ((overlay && overlay.parentElement === left) ? overlay : video);
     if (anchor && anchor.parentElement === left) {
       if (anchor.nextSibling !== stack) {
         if (anchor.nextSibling) left.insertBefore(stack, anchor.nextSibling);
@@ -205,8 +336,10 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
     if (shouldVertical !== isVertical) {
       isVertical = shouldVertical;
       grid.classList.toggle("btfw-grid--vertical", shouldVertical);
+      grid.classList.toggle("btfw-grid--desktop-scroll", !shouldVertical);
       if (document.body) {
         document.body.classList.toggle("btfw-mobile-stack-enabled", shouldVertical);
+        document.body.classList.toggle("btfw-desktop-scroll-enabled", !shouldVertical);
       }
       placeStackInLayout();
       refreshVideoSizing();
@@ -221,9 +354,21 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
       placeStackInLayout();
     }
 
+    grid.classList.toggle("btfw-grid--desktop-scroll", !shouldVertical);
+    if (document.body) {
+      document.body.classList.toggle("btfw-desktop-scroll-enabled", !shouldVertical);
+    }
+
     applyColumnTemplate();
     setTop();
-    if (!shouldVertical) refreshVideoSizing();
+    applyViewportBudget();
+    syncStackLayoutClasses();
+    refreshVideoSizing();
+    requestAnimationFrame(() => {
+      applyViewportBudget();
+      alignPrimaryRowBottoms();
+      refreshVideoSizing();
+    });
   }
   
   function setTop(){
@@ -231,17 +376,16 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
     const h = header ? header.offsetHeight : 48;
     const newTop = h + "px";
     
+    document.documentElement.style.setProperty("--btfw-nav-real-height", newTop);
     document.documentElement.style.setProperty("--btfw-top", newTop);
+
+    const topEffective = navAutohideActive && navAutohideHidden ? "0px" : newTop;
+    document.documentElement.style.setProperty("--btfw-top-effective", topEffective);
 
     const chatcol = document.getElementById("btfw-chatcol");
     if (chatcol) {
-      if (isVertical) {
-        chatcol.style.top = "0px";
-        chatcol.style.height = "";
-      } else {
-        chatcol.style.top = `calc(${newTop} + var(--btfw-gap))`;
-        chatcol.style.height = `calc(100vh - ${newTop} - var(--btfw-gap) * 2)`;
-      }
+      chatcol.style.removeProperty("top");
+      chatcol.style.removeProperty("height");
     }
   }
 
@@ -370,6 +514,23 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
     vh.remove(); 
   }
 
+  function ensureVideoStage(left){
+    if (!left) return;
+    let stage = document.getElementById("btfw-video-stage");
+    if (!stage) {
+      stage = document.createElement("div");
+      stage.id = "btfw-video-stage";
+      stage.className = "btfw-video-stage";
+    }
+    if (stage.parentElement !== left) {
+      left.insertBefore(stage, left.firstChild);
+    }
+    const v = document.getElementById("videowrap");
+    const overlay = document.getElementById("btfw-video-overlay");
+    if (v && v.parentElement !== stage) stage.appendChild(v);
+    if (overlay && overlay.parentElement !== stage) stage.appendChild(overlay);
+  }
+
   function ensureShell(){
     const wrap=document.getElementById("wrap")||document.body; 
     const v=document.getElementById("videowrap"); 
@@ -419,6 +580,8 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
 
     ["videowrap","playlistrow","playlistwrap","queuecontainer","queue","plmeta","chatwrap","controlsrow","rightcontrols"].forEach(id=>stripDeep(document.getElementById(id)));
     moveCurrent();
+    const left = document.getElementById("btfw-leftpad");
+    ensureVideoStage(left);
     placeStackInLayout();
   }
   
@@ -485,6 +648,23 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
 
   document.addEventListener("btfw:chat:barsReady", () => {
     placeStackInLayout();
+  });
+
+  document.addEventListener("btfw:layout:stackVisibility", (ev) => {
+    syncStackLayoutClasses(ev?.detail || {});
+    applyViewportBudget();
+    refreshVideoSizing();
+    requestAnimationFrame(alignPrimaryRowBottoms);
+  });
+
+  document.addEventListener("btfw:navbar:autohide", (ev) => {
+    const detail = ev?.detail || {};
+    navAutohideActive = !!detail.active;
+    navAutohideHidden = !!detail.hidden;
+    setTop();
+    applyViewportBudget();
+    refreshVideoSizing();
+    requestAnimationFrame(alignPrimaryRowBottoms);
   });
 
   function findNavbarElement(){
