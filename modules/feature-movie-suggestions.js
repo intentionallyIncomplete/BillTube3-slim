@@ -238,7 +238,7 @@ BTFW.define("ext:movie-suggestion", ["util:tmdb-proxy"], async ({ init }) => {
     a.className = "btfw-nav-pill";
     a.id = "btfw-movie-suggest-btn";
     a.innerHTML = `
-      <span class="btfw-nav-pill__icon" aria-hidden="true"><i class="fa fa-film"></i></span>
+      <span class="btfw-nav-pill__icon" data-btfw-icon-slot="nav-movie-request" aria-hidden="true"><i class="fa fa-film"></i></span>
       <span class="btfw-nav-pill__label">Request</span>
     `;
 
