@@ -1,21 +1,30 @@
 /* --------- Tablet & down (<= 1100px): stack columns --------- */
 @media (max-width: 1100px){
+  :root {
+    --btfw-stack-header-min-h: 44px;
+  }
+
   #btfw-grid.btfw-grid--vertical{
     padding: var(--btfw-gap, 10px) 8px;
     margin-top: 0;
-    min-height: calc(100dvh - var(--btfw-top-effective));
-    height: calc(100dvh - var(--btfw-top-effective));
     --btfw-emote-size: 84px;
     --btfw-chat-gif-max-width: 56%;
-    --btfw-video-share: 0.36;
   }
 
   #btfw-grid.btfw-grid--vertical #videowrap{
-    max-height: min(var(--btfw-video-max-h), 38dvh, 54vw);
+    max-height: var(--btfw-video-max-h);
   }
 
-  #btfw-grid.btfw-grid--vertical > #btfw-stack{
-    max-height: min(32dvh, 380px);
+  .btfw-stack-item__header {
+    padding: 8px 10px;
+  }
+
+  .btfw-arrow {
+    min-height: 28px;
+    min-width: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
