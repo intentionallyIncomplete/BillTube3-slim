@@ -6,7 +6,7 @@
   --btfw-primary-budget: calc(var(--btfw-viewport-h) - var(--btfw-top-effective) - var(--btfw-gap) * 2);
   --btfw-video-share: 0.55;
   --btfw-stack-max-h: 45%;
-  --btfw-stack-header-min-h: 40px;
+  --btfw-stack-header-min-h: 48px;
   --btfw-video-max-h: min(
     calc(var(--btfw-primary-budget) * var(--btfw-video-share)),
     calc((100vw - var(--btfw-chat-min, 320px) - var(--btfw-split-width, 8px) - var(--btfw-gap) * 3) * 9 / 16)

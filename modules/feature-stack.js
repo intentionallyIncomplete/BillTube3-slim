@@ -4,11 +4,23 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
   const PLAYLIST_VISIBILITY_KEY = "btfw-stack-playlist-open";
   const POLL_VISIBILITY_KEY = "btfw-stack-poll-open";
 
-  const HIDDEN_KEYS = {
-    "motd-group": "btfw-stack-motd-hidden",
-    "playlist-group": "btfw-stack-playlist-hidden",
-    "poll-group": "btfw-stack-poll-hidden"
+  const DOCKED_KEYS = {
+    "motd-group": "btfw-stack-motd-docked",
+    "playlist-group": "btfw-stack-playlist-docked",
+    "poll-group": "btfw-stack-poll-docked"
   };
+
+  /** @deprecated migrated to DOCKED_KEYS */
+  const HIDDEN_KEYS = DOCKED_KEYS;
+
+  const GROUP_LABELS = {
+    "motd-group": { short: "MOTD", title: "Message of the Day" },
+    "playlist-group": { short: "PL", title: "Playlist" },
+    "poll-group": { short: "Poll", title: "Polls & Voting" }
+  };
+
+  let drawerWired = false;
+  let activeDrawerGroup = null;
 
   const STACK_VISIBILITY = {
     "motd-group": {
@@ -618,10 +630,13 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
     header.className = "btfw-stack-item__header";
     header.innerHTML = `
       <span class="btfw-stack-item__title">${group.title}</span>
-      <span class="btfw-stack-arrows">
-        <button class="btfw-arrow btfw-up">↑</button>
-        <button class="btfw-arrow btfw-down">↓</button>
-      </span>
+      <div class="btfw-stack-header-toolbar">
+        <span class="btfw-stack-header-actions"></span>
+        <span class="btfw-stack-arrows">
+          <button type="button" class="btfw-arrow btfw-up" aria-label="Move panel up">↑</button>
+          <button type="button" class="btfw-arrow btfw-down" aria-label="Move panel down">↓</button>
+        </span>
+      </div>
     `;
 
     const body = document.createElement("div");
@@ -643,7 +658,7 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
 
     const vis = STACK_VISIBILITY[group.id];
     if (vis) attachStackVisibilityToggle(wrapper, vis);
-    attachPanelHideCheckbox(wrapper, group.id);
+    attachPanelDockButton(wrapper, group.id);
 
     // Wire up/down buttons
     wrapper.querySelector(".btfw-up").onclick = function(){
@@ -697,86 +712,259 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
     }catch(e){}
   }
 
-  function getStoredHidden(key){
-    try{
-      const stored = localStorage.getItem(key);
-      if (stored === null) return false;
-      return stored === "true";
-    }catch(e){
+  function getStoredDocked(key){
+    try {
+      const docked = localStorage.getItem(key);
+      if (docked !== null) return docked === "true";
+      const legacy = key.replace("-docked", "-hidden");
+      const hidden = localStorage.getItem(legacy);
+      if (hidden !== null) return hidden === "true";
+      return false;
+    } catch (e) {
       return false;
     }
   }
 
-  function storeHidden(key, isHidden){
-    try{
-      localStorage.setItem(key, isHidden ? "true" : "false");
-    }catch(e){}
+  function storeDocked(key, isDocked){
+    try {
+      localStorage.setItem(key, isDocked ? "true" : "false");
+    } catch (e) {}
+  }
+
+  function isInlineStackEmpty(){
+    const items = document.querySelectorAll("#btfw-stack .btfw-stack-item[data-group='true']");
+    if (!items.length) return true;
+    return Array.from(items).every((el) => el.dataset.docked === "true");
   }
 
   function dispatchStackVisibility(){
     const items = Array.from(document.querySelectorAll("#btfw-stack .btfw-stack-item[data-group='true']"));
-    const visibleItems = items.filter((el) => el.dataset.hidden !== "true");
-    const allHidden = items.length > 0 && visibleItems.length === 0;
+    const inlineItems = items.filter((el) => el.dataset.docked !== "true");
+    const allDocked = items.length > 0 && inlineItems.length === 0;
     const stack = document.getElementById("btfw-stack");
     const leftpad = document.getElementById("btfw-leftpad");
     const grid = document.getElementById("btfw-grid");
-    if (stack) stack.classList.toggle("btfw-stack--all-hidden", allHidden);
-    if (leftpad) leftpad.classList.toggle("btfw-leftpad--stack-hidden", allHidden);
-    if (grid) grid.classList.toggle("btfw-grid--stack-hidden", allHidden);
+    if (stack) {
+      stack.classList.toggle("btfw-stack--all-hidden", allDocked);
+      stack.classList.toggle("btfw-stack--all-docked", allDocked);
+    }
+    if (leftpad) leftpad.classList.toggle("btfw-leftpad--stack-hidden", allDocked);
+    if (grid) grid.classList.toggle("btfw-grid--stack-hidden", allDocked);
     document.dispatchEvent(new CustomEvent("btfw:layout:stackVisibility", {
       detail: {
-        allHidden,
-        visibleCount: visibleItems.length,
+        allHidden: allDocked,
+        allDocked,
+        visibleCount: inlineItems.length,
         totalCount: items.length
       }
     }));
   }
 
-  function setPanelHidden(wrapper, hidden, opts = {}){
+  function ensureStackDrawer(){
+    let root = document.getElementById("btfw-stack-drawer");
+    if (!root) {
+      root = document.createElement("aside");
+      root.id = "btfw-stack-drawer";
+      root.className = "btfw-stack-drawer";
+      root.setAttribute("aria-label", "Docked channel panels");
+      root.innerHTML = `
+        <button type="button" class="btfw-stack-drawer__handle" aria-label="Open panel drawer" title="Panels">
+          <span class="btfw-stack-drawer__handle-grip" aria-hidden="true"></span>
+        </button>
+        <div class="btfw-stack-drawer__rail" role="tablist" aria-label="Docked panels"></div>
+        <div class="btfw-stack-drawer__sheet" hidden>
+          <header class="btfw-stack-drawer__sheet-header">
+            <h2 class="btfw-stack-drawer__sheet-title"></h2>
+            <div class="btfw-stack-drawer__sheet-actions">
+              <button type="button" class="btfw-stack-drawer__undock">Pin below video</button>
+              <button type="button" class="btfw-stack-drawer__close" aria-label="Close drawer">&times;</button>
+            </div>
+          </header>
+          <div class="btfw-stack-drawer__sheet-host"></div>
+        </div>
+      `;
+      document.body.appendChild(root);
+    }
+    if (!drawerWired) {
+      wireStackDrawer(root);
+      drawerWired = true;
+    }
+    return root;
+  }
+
+  function wireStackDrawer(root){
+    const handle = root.querySelector(".btfw-stack-drawer__handle");
+    const closeBtn = root.querySelector(".btfw-stack-drawer__close");
+    const undockBtn = root.querySelector(".btfw-stack-drawer__undock");
+
+    handle?.addEventListener("click", () => {
+      const tabs = root.querySelectorAll(".btfw-stack-drawer__tab");
+      if (!tabs.length) return;
+      if (root.classList.contains("is-open")) {
+        closeDrawer();
+      } else {
+        const target = activeDrawerGroup
+          ? root.querySelector(`.btfw-stack-drawer__tab[data-group="${activeDrawerGroup}"]`)
+          : tabs[0];
+        if (target) openDrawerPanel(target.dataset.group);
+      }
+    });
+
+    closeBtn?.addEventListener("click", () => closeDrawer());
+    undockBtn?.addEventListener("click", () => {
+      if (!activeDrawerGroup) return;
+      const item = document.querySelector(`.btfw-stack-item[data-bind="${activeDrawerGroup}"]`);
+      if (item) setPanelDocked(item, false);
+      closeDrawer();
+    });
+
+    let dragStartX = 0;
+    let dragging = false;
+    handle?.addEventListener("pointerdown", (ev) => {
+      if (!root.querySelector(".btfw-stack-drawer__tab")) return;
+      dragging = true;
+      dragStartX = ev.clientX;
+      handle.setPointerCapture(ev.pointerId);
+    });
+    handle?.addEventListener("pointermove", (ev) => {
+      if (!dragging) return;
+      if (ev.clientX - dragStartX > 28) {
+        dragging = false;
+        const tabs = root.querySelectorAll(".btfw-stack-drawer__tab");
+        if (tabs.length) openDrawerPanel(activeDrawerGroup || tabs[0].dataset.group);
+      }
+    });
+    const endDrag = () => { dragging = false; };
+    handle?.addEventListener("pointerup", endDrag);
+    handle?.addEventListener("pointercancel", endDrag);
+  }
+
+  function closeDrawer(){
+    const root = document.getElementById("btfw-stack-drawer");
+    if (!root) return;
+    root.classList.remove("is-open");
+    const sheet = root.querySelector(".btfw-stack-drawer__sheet");
+    if (sheet) sheet.hidden = true;
+    const host = root.querySelector(".btfw-stack-drawer__sheet-host");
+    const item = host?.firstElementChild;
+    if (item && item.classList?.contains("btfw-stack-item")) {
+      restorePanelToStack(item);
+    }
+    root.querySelectorAll(".btfw-stack-drawer__tab").forEach((tab) => {
+      tab.setAttribute("aria-selected", "false");
+    });
+  }
+
+  function restorePanelToStack(item){
+    const list = document.querySelector("#btfw-stack .btfw-stack-list");
+    if (!list || !item) return;
+    if (item.parentElement !== list) list.appendChild(item);
+  }
+
+  function syncDrawerRail(){
+    const root = ensureStackDrawer();
+    const rail = root.querySelector(".btfw-stack-drawer__rail");
+    if (!rail) return;
+
+    rail.innerHTML = "";
+    const docked = Array.from(document.querySelectorAll('#btfw-stack .btfw-stack-item[data-docked="true"]'));
+    docked.forEach((item) => {
+      const groupId = item.dataset.bind;
+      const meta = GROUP_LABELS[groupId] || { short: "?", title: groupId };
+      const tab = document.createElement("button");
+      tab.type = "button";
+      tab.className = "btfw-stack-drawer__tab";
+      tab.dataset.group = groupId;
+      tab.setAttribute("role", "tab");
+      tab.setAttribute("aria-selected", activeDrawerGroup === groupId ? "true" : "false");
+      tab.title = meta.title;
+      tab.textContent = meta.short;
+      tab.addEventListener("click", () => openDrawerPanel(groupId));
+      rail.appendChild(tab);
+    });
+
+    root.classList.toggle("has-tabs", docked.length > 0);
+    if (!docked.length) closeDrawer();
+  }
+
+  function openDrawerPanel(groupId){
+    const root = ensureStackDrawer();
+    const item = document.querySelector(`.btfw-stack-item[data-bind="${groupId}"]`);
+    const host = root.querySelector(".btfw-stack-drawer__sheet-host");
+    const sheet = root.querySelector(".btfw-stack-drawer__sheet");
+    const title = root.querySelector(".btfw-stack-drawer__sheet-title");
+    if (!item || !host || !sheet) return;
+
+    const openItem = host.querySelector(".btfw-stack-item");
+    if (openItem && openItem !== item) restorePanelToStack(openItem);
+
+    host.appendChild(item);
+    activeDrawerGroup = groupId;
+    if (title) title.textContent = GROUP_LABELS[groupId]?.title || groupId;
+    sheet.hidden = false;
+    root.classList.add("is-open");
+    root.querySelectorAll(".btfw-stack-drawer__tab").forEach((tab) => {
+      tab.setAttribute("aria-selected", tab.dataset.group === groupId ? "true" : "false");
+    });
+    item.dataset.open = "true";
+    item.classList.add("is-open");
+  }
+
+  function setPanelDocked(wrapper, docked, opts = {}){
     if (!wrapper) return;
-    const isHidden = !!hidden;
+    const isDocked = !!docked;
     const suppressPersist = opts.persist === false;
-    wrapper.dataset.hidden = isHidden ? "true" : "false";
     const groupId = wrapper.dataset.bind;
-    const hiddenKey = HIDDEN_KEYS[groupId];
-    const checkbox = wrapper.querySelector(".btfw-stack-hide-panel input");
-    if (checkbox && checkbox.checked !== isHidden) checkbox.checked = isHidden;
-    if (!suppressPersist && hiddenKey) storeHidden(hiddenKey, isHidden);
+    const dockKey = DOCKED_KEYS[groupId];
+
+    wrapper.dataset.docked = isDocked ? "true" : "false";
+    wrapper.classList.toggle("btfw-stack-item--docked", isDocked);
+
+    const dockBtn = wrapper.querySelector(".btfw-stack-dock-btn");
+    if (dockBtn) {
+      dockBtn.setAttribute("aria-pressed", isDocked ? "true" : "false");
+      dockBtn.title = isDocked ? "Pinned to side drawer" : "Dock to side drawer";
+    }
+
+    if (isDocked) {
+      if (activeDrawerGroup === groupId) closeDrawer();
+    } else {
+      restorePanelToStack(wrapper);
+    }
+
+    if (!suppressPersist && dockKey) storeDocked(dockKey, isDocked);
+    syncDrawerRail();
     dispatchStackVisibility();
   }
 
-  function attachPanelHideCheckbox(wrapper, groupId){
-    const hiddenKey = HIDDEN_KEYS[groupId];
-    if (!hiddenKey) return;
+  function attachPanelDockButton(wrapper, groupId){
+    const dockKey = DOCKED_KEYS[groupId];
+    if (!dockKey) return;
 
     const header = wrapper.querySelector(".btfw-stack-item__header");
-    if (!header || header.querySelector(".btfw-stack-hide-panel")) return;
+    const toolbar = header?.querySelector(".btfw-stack-header-toolbar");
+    const arrows = toolbar?.querySelector(".btfw-stack-arrows");
+    if (!arrows || arrows.querySelector(".btfw-stack-dock-btn")) return;
 
-    const storedHidden = getStoredHidden(hiddenKey);
-    wrapper.dataset.hidden = storedHidden ? "true" : "false";
+    const storedDocked = getStoredDocked(dockKey);
+    wrapper.dataset.docked = storedDocked ? "true" : "false";
+    wrapper.classList.toggle("btfw-stack-item--docked", storedDocked);
 
-    const label = document.createElement("label");
-    label.className = "btfw-stack-hide-panel";
-    label.title = "Hide this panel and give more space to video and chat";
+    const dockBtn = document.createElement("button");
+    dockBtn.type = "button";
+    dockBtn.className = "btfw-arrow btfw-stack-dock-btn";
+    dockBtn.textContent = "⫷";
+    dockBtn.setAttribute("aria-label", `Dock ${GROUP_LABELS[groupId]?.title || groupId} to side drawer`);
+    dockBtn.setAttribute("aria-pressed", storedDocked ? "true" : "false");
+    dockBtn.title = storedDocked ? "Pinned to side drawer" : "Dock to side drawer";
 
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.checked = storedHidden;
-    input.setAttribute("aria-label", `Hide ${groupId.replace("-group", "")} panel`);
-
-    const text = document.createElement("span");
-    text.textContent = "Hide";
-
-    label.appendChild(input);
-    label.appendChild(text);
-
-    input.addEventListener("change", () => {
-      setPanelHidden(wrapper, input.checked);
+    dockBtn.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      setPanelDocked(wrapper, wrapper.dataset.docked !== "true");
     });
 
-    const arrows = header.querySelector(".btfw-stack-arrows");
-    if (arrows) header.insertBefore(label, arrows);
-    else header.appendChild(label);
+    arrows.insertBefore(dockBtn, arrows.firstChild);
   }
 
   function getStoredPlaylistVisibility(){
@@ -874,7 +1062,7 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
 
     arrows.insertBefore(toggleBtn, arrows.firstChild);
     wrapper._btfwSetOpenState = setOpenState;
-    attachPanelHideCheckbox(wrapper, wrapper.dataset.bind);
+    attachPanelDockButton(wrapper, wrapper.dataset.bind);
   }
 
   function detachPollWrapFromPlaylist() {
@@ -1115,8 +1303,10 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
     if (!slot) {
       slot = document.createElement("span");
       slot.className = "btfw-stack-header-actions";
-      const arrows = header.querySelector(".btfw-stack-arrows");
-      if (arrows) header.insertBefore(slot, arrows);
+      const toolbar = header.querySelector(".btfw-stack-header-toolbar");
+      const arrows = toolbar?.querySelector(".btfw-stack-arrows") || header.querySelector(".btfw-stack-arrows");
+      if (toolbar && arrows) toolbar.insertBefore(slot, arrows);
+      else if (arrows) header.insertBefore(slot, arrows);
       else header.appendChild(slot);
     }
     return slot;
@@ -1330,11 +1520,13 @@ BTFW.define("feature:stack", ["feature:layout"], async ({}) => {
     }
 
     document.querySelectorAll('#btfw-stack .btfw-stack-item[data-group="true"]').forEach((item) => {
-      const hiddenKey = HIDDEN_KEYS[item.dataset.bind];
-      if (!hiddenKey) return;
-      setPanelHidden(item, getStoredHidden(hiddenKey), { persist: false });
+      const dockKey = DOCKED_KEYS[item.dataset.bind];
+      if (!dockKey) return;
+      setPanelDocked(item, getStoredDocked(dockKey), { persist: false });
     });
 
+    ensureStackDrawer();
+    syncDrawerRail();
     syncPollPanelVisibility(refs);
     dispatchStackVisibility();
   }, 1000);

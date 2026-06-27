@@ -28,8 +28,9 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
   }
 
   function isStackFullyHidden(){
-    const stack = document.getElementById("btfw-stack");
-    return Boolean(stack && stack.classList.contains("btfw-stack--all-hidden"));
+    const items = document.querySelectorAll("#btfw-stack .btfw-stack-item[data-group='true']");
+    if (!items.length) return true;
+    return Array.from(items).every((el) => el.dataset.docked === "true");
   }
 
   function measureOverlayHeight(){
@@ -41,6 +42,7 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
   }
 
   function measureVisibleStackHeight(primaryRowH){
+    if (!isVertical) return 0;
     const stack = document.getElementById("btfw-stack");
     if (!stack || isStackFullyHidden()) return 0;
     const style = getComputedStyle(stack);
@@ -91,8 +93,8 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
     let videoMaxH;
     const overlayH = !isVertical ? measureOverlayHeight() : 0;
     if (!isVertical) {
-      videoMaxH = primaryRowH - stackReserved - overlayH - (stackReserved > 0 || overlayH > 0 ? gap : 0);
-      if (isStackFullyHidden()) videoMaxH = primaryRowH - overlayH - (overlayH > 0 ? gap : 0);
+      root.style.setProperty("--btfw-stack-max-h", "none");
+      videoMaxH = primaryRowH - overlayH - (overlayH > 0 ? gap : 0);
       videoMaxH = Math.min(videoMaxH, aspectCap);
     } else {
       const chatMin = 220;
@@ -109,6 +111,7 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
   }
 
   function alignPrimaryRowBottoms(){
+    if (!isVertical) return;
     const viewportH = getViewportHeight();
     const margin = 2;
     const root = document.documentElement;
@@ -311,9 +314,10 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
     stack.classList.remove("btfw-stack--in-chat");
     const left = document.getElementById("btfw-leftpad");
     if (!left) return;
+    const stage = document.getElementById("btfw-video-stage");
     const video = document.getElementById("videowrap");
     const overlay = document.getElementById("btfw-video-overlay");
-    const anchor = (overlay && overlay.parentElement === left) ? overlay : video;
+    const anchor = stage || ((overlay && overlay.parentElement === left) ? overlay : video);
     if (anchor && anchor.parentElement === left) {
       if (anchor.nextSibling !== stack) {
         if (anchor.nextSibling) left.insertBefore(stack, anchor.nextSibling);
@@ -332,8 +336,10 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
     if (shouldVertical !== isVertical) {
       isVertical = shouldVertical;
       grid.classList.toggle("btfw-grid--vertical", shouldVertical);
+      grid.classList.toggle("btfw-grid--desktop-scroll", !shouldVertical);
       if (document.body) {
         document.body.classList.toggle("btfw-mobile-stack-enabled", shouldVertical);
+        document.body.classList.toggle("btfw-desktop-scroll-enabled", !shouldVertical);
       }
       placeStackInLayout();
       refreshVideoSizing();
@@ -346,6 +352,11 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
       document.dispatchEvent(new CustomEvent("btfw:layout:orientation", { detail: { vertical: shouldVertical } }));
     } else {
       placeStackInLayout();
+    }
+
+    grid.classList.toggle("btfw-grid--desktop-scroll", !shouldVertical);
+    if (document.body) {
+      document.body.classList.toggle("btfw-desktop-scroll-enabled", !shouldVertical);
     }
 
     applyColumnTemplate();
@@ -503,6 +514,23 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
     vh.remove(); 
   }
 
+  function ensureVideoStage(left){
+    if (!left) return;
+    let stage = document.getElementById("btfw-video-stage");
+    if (!stage) {
+      stage = document.createElement("div");
+      stage.id = "btfw-video-stage";
+      stage.className = "btfw-video-stage";
+    }
+    if (stage.parentElement !== left) {
+      left.insertBefore(stage, left.firstChild);
+    }
+    const v = document.getElementById("videowrap");
+    const overlay = document.getElementById("btfw-video-overlay");
+    if (v && v.parentElement !== stage) stage.appendChild(v);
+    if (overlay && overlay.parentElement !== stage) stage.appendChild(overlay);
+  }
+
   function ensureShell(){
     const wrap=document.getElementById("wrap")||document.body; 
     const v=document.getElementById("videowrap"); 
@@ -552,6 +580,8 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
 
     ["videowrap","playlistrow","playlistwrap","queuecontainer","queue","plmeta","chatwrap","controlsrow","rightcontrols"].forEach(id=>stripDeep(document.getElementById(id)));
     moveCurrent();
+    const left = document.getElementById("btfw-leftpad");
+    ensureVideoStage(left);
     placeStackInLayout();
   }
   
