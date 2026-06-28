@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.14.0...v1.15.0) (2026-06-28)
+
+
+### Features
+
+* **ui:** responsive layout, stacked Menu, panel dock ([#116](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/116)) ([#117](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/117)) ([17908bd](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/17908bd00623b04b1a65a4e957c0cbe185a180d1))
+
 # [1.14.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.13.2...v1.14.0) (2026-06-27)
 
 
