@@ -1,21 +1,32 @@
-/* --------- Tablet & down (<= 1100px): stack columns, sticky chat --------- */
+/* --------- Tablet & down (<= 1100px): stack columns --------- */
 @media (max-width: 1100px){
+  :root {
+    --btfw-stack-header-min-h: 44px;
+  }
+
   #btfw-grid.btfw-grid--vertical{
     padding: var(--btfw-gap, 10px) 8px;
     margin-top: 0;
-    min-height: calc(100dvh - var(--btfw-top));
-    height: auto;
     --btfw-emote-size: 84px;
     --btfw-chat-gif-max-width: 56%;
   }
 
-  #btfw-grid.btfw-grid--vertical #btfw-chatcol{
-    min-height: clamp(220px, 36dvh, 380px);
-    max-height: min(46dvh, 460px);
+  #btfw-grid.btfw-grid--vertical #videowrap{
+    max-height: var(--btfw-videowrap-max-h, var(--btfw-video-max-h));
+    height: var(--btfw-videowrap-max-h, auto);
+    aspect-ratio: unset;
   }
 
-  #btfw-grid.btfw-grid--vertical #videowrap{
-    max-height: min(32dvh, 54vw);
+  .btfw-stack-item__header {
+    padding: 8px 10px;
+  }
+
+  .btfw-arrow {
+    min-height: 28px;
+    min-width: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -42,12 +53,13 @@ body.btfw-mobile-nav-open{
     border-radius: 0;
     padding: 0;
   }
-  .btfw-chat-actions{ gap: 6px; }
+  .btfw-chat-actions{ gap: 6px; flex-wrap: nowrap; }
   .button.btfw-chatbtn{
-    font-size: 14px;
-    line-height: 1.2;
-    padding: 6px 10px;
-    min-height: 36px;
+    font-size: 15px;
+    line-height: 1;
+    padding: 10px 12px;
+    min-width: 40px;
+    min-height: 40px;
     border-radius: 10px;
   }
 
@@ -57,12 +69,12 @@ body.btfw-mobile-nav-open{
     padding: 6px;
   }
 
-  /* Keep controls row visible; allow wrapping */
+  /* Keep controls row visible; avoid wrap jitter while resizing */
   .btfw-controls-row{
     gap: 6px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
-  #chatline{ flex: 1 1 100%; min-height: 42px; }
+  #chatline{ flex: 1 1 auto; min-width: 0; }
 
   /* Userlist overlay as a sheet */
   #userlist.btfw-userlist-overlay{
@@ -97,10 +109,10 @@ body.btfw-mobile-nav-open{
     font-size: 15px;
   }
 
-  /* Give the video breathing room + a slightly wider aspect on phones */
+  /* Give the video breathing room on phones */
   #btfw-grid.btfw-grid--vertical #videowrap{
     margin-top: clamp(5px, 5vw, 5px);
-    --btfw-video-aspect: 16 / 8.5;
+    min-height: 120px;
   }
 
   /* Compact the playlist toolbar columns */
@@ -130,7 +142,7 @@ body.btfw-mobile-nav-open{
 /* --------- Small phones (<= 480px): extra tightening ---------------------- */
 @media (max-width: 480px){
   #btfw-grid{ padding: 0 6px; }
-  .button.btfw-chatbtn{ padding: 6px 8px; min-height: 34px; }
+  .button.btfw-chatbtn{ padding: 8px 10px; min-width: 38px; min-height: 38px; }
   #messagebuffer .chat-msg{ padding: 2px 0; }
   #btfw-nowplaying-slot{ font-size: 14px; }
 }

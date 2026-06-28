@@ -331,6 +331,7 @@ const CHAT_ACTION_ORDER = [
   "#btfw-ct-open",
   "#btfw-chatcmds-btn",
   "#btfw-users-toggle",
+  "#btfw-panels-menu-shell",
   "#btfw-drink-counter",
   "#usercount"
 ];
@@ -361,6 +362,11 @@ function orderChatActions(actions){
 
   if (alreadyOrdered) return;
 
+  const observer = actions._btfwNormalizeObserver;
+  if (observer) {
+    try { observer.disconnect(); } catch (_) {}
+  }
+
   const anchor = document.createElement("span");
   anchor.style.display = "none";
   actions.insertBefore(anchor, actions.firstChild);
@@ -370,6 +376,10 @@ function orderChatActions(actions){
     }
   });
   anchor.remove();
+
+  if (observer) {
+    try { observer.observe(actions, { childList: true }); } catch (_) {}
+  }
 }
 
 const scheduleNormalizeChatActions = (() => {
@@ -978,13 +988,16 @@ const scheduleNormalizeChatActions = (() => {
     wireChatUsernameContextMenu();
     adoptNewMessageIndicator();
 
-    document.dispatchEvent(new CustomEvent("btfw:chat:barsReady", {
-      detail: {
-        topbar: top,
-        bottombar: bottom,
-        actions: topActions
-      }
-    }));
+    if (!cw.dataset.btfwBarsReady) {
+      cw.dataset.btfwBarsReady = "1";
+      document.dispatchEvent(new CustomEvent("btfw:chat:barsReady", {
+        detail: {
+          topbar: top,
+          bottombar: bottom,
+          actions: topActions
+        }
+      }));
+    }
   }
 
   function refreshChatDom(){
@@ -1208,6 +1221,45 @@ const scheduleNormalizeChatActions = (() => {
     }, true);
   }
 
+  function getVerticalScrollParent(){
+    const grid = document.getElementById("btfw-grid");
+    return grid?.classList.contains("btfw-grid--vertical")
+      ? grid
+      : (document.scrollingElement || document.documentElement);
+  }
+
+  function wireVerticalScrollChaining(){
+    const grid = document.getElementById("btfw-grid");
+    if (!grid?.classList.contains("btfw-grid--vertical")) return;
+
+    [
+      document.getElementById("messagebuffer"),
+      document.querySelector('#btfw-stack [data-bind="playlist-group"] #queue'),
+      document.querySelector('#btfw-stack [data-bind="playlist-group"] #queuecontainer'),
+    ].forEach((el) => {
+      if (!el || el.dataset.btfwScrollChainWired) return;
+      el.dataset.btfwScrollChainWired = "1";
+
+      el.addEventListener("wheel", (ev) => {
+        if (!document.getElementById("btfw-grid")?.classList.contains("btfw-grid--vertical")) return;
+        const delta = ev.deltaY;
+        if (!delta) return;
+        const atTop = el.scrollTop <= 0;
+        const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+        if ((delta > 0 && atBottom) || (delta < 0 && atTop)) {
+          const parent = getVerticalScrollParent();
+          if (!parent) return;
+          parent.scrollTop += delta;
+          ev.preventDefault();
+        }
+      }, { passive: false });
+    });
+  }
+
+  document.addEventListener("btfw:layout:orientation", () => {
+    setTimeout(wireVerticalScrollChaining, 0);
+  });
+
   document.addEventListener("btfw:themeSettings:apply", () => {
     scheduleMarkChatMessageGroups();
   });
@@ -1222,11 +1274,14 @@ const scheduleNormalizeChatActions = (() => {
     scheduleMarkChatMessageGroups();
     wireDelegatedClicks();
     watchForStrayButtons();
+    wireVerticalScrollChaining();
   }
 
   document.addEventListener("btfw:layoutReady", ()=> setTimeout(boot, 50));
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
+
+  document._btfw_openThemeSettings = openThemeSettings;
 
   return { name:"feature:chat" };
 });

@@ -151,6 +151,7 @@
     border-radius: 0;
     background: transparent;
     flex-shrink: 0;
+    contain: layout style;
 }
 
 #chatwrap .btfw-chat-topbar{
@@ -326,15 +327,17 @@
   display:flex;
   align-items:flex-end;
   gap:8px;
-  flex-wrap:wrap;
+  flex-wrap:nowrap;
   width:100%;
   min-width:0;
+  min-height: 42px;
   margin:0;
   padding:0;
   background: transparent;
   border: 0;
   border-radius: 0;
   flex: 1 1 auto;
+  contain: layout style;
 }
 
 .btfw-chat-composer,
@@ -443,12 +446,22 @@
   display:flex;
   align-items:center;
   justify-content:flex-start;
-  flex-wrap:wrap;
+  flex-wrap:nowrap;
   gap:8px;
   width:100%;
+  min-height: 44px;
   padding-top:6px;
   border-top:1px solid color-mix(in srgb, var(--btfw-border) 55%, transparent 45%);
   margin-top:2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  contain: layout style;
+}
+
+.btfw-chat-actions::-webkit-scrollbar {
+  display: none;
 }
 .btfw-chat-actions #usercount{
   margin-left:auto;
@@ -724,9 +737,26 @@
 }
 
 /* Mobile refinements */
+@media (max-width: 1100px){
+  .btfw-chat-actions{
+    gap: 6px;
+    min-height: 38px;
+  }
+
+  .btfw-controls-row{
+    gap: 6px;
+    min-height: 40px;
+  }
+
+  #chatwrap .btfw-chat-bottombar{
+    gap: 6px;
+    padding: 6px 8px 8px;
+  }
+}
+
 @media (max-width: 768px){
-  .btfw-controls-row{ flex-wrap:wrap; }
-  #chatline{ flex: 1 1 100%; }
+  .btfw-controls-row{ flex-wrap:nowrap; }
+  #chatline{ flex: 1 1 auto; min-width: 0; }
   
   /* On mobile, chat should fill available space but not overflow */
   #chatwrap {
@@ -908,11 +938,20 @@
 
 .btfw-chat-actions .button.btfw-chatbtn{
   border-radius: 999px;
-  padding: 8px 8px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 10px 12px;
+  font-size: 15px;
+  line-height: 1;
   background: radial-gradient(120% 140% at 28% 28%, color-mix(in srgb, var(--btfw-color-accent) 28%, transparent 72%), color-mix(in srgb, var(--btfw-color-panel) 78%, transparent 22%));
   border: 1px solid color-mix(in srgb, var(--btfw-border) 68%, transparent 32%);
   box-shadow: inset 0 1px 0 color-mix(in srgb, white 18%, transparent 82%);
   transition: filter .2s ease, transform .2s ease;
+}
+
+.btfw-chat-actions .button.btfw-chatbtn i,
+.btfw-chat-actions .button.btfw-chatbtn .fa{
+  font-size: 1.05em;
 }
 
 .btfw-chat-actions .button.btfw-chatbtn:hover{
@@ -1232,123 +1271,10 @@ body.btfw-ts-hide #messagebuffer .timestamp { display:none !important; }
   border: 0px solid #009900!important;
   border-radius: 10px;
 }
-/* ==========================================
-   SPECIAL USERNAME EFFECTS
-   ========================================== */
-
-/* VIP Tier 1 - Blue Gradient with Sparkles */
-.VIP2 {
-    --bg-pos: .2em -.07em;
-    -webkit-background-clip: border-box, text;
-    -webkit-text-fill-color: transparent;
-    animation: starkrdp-anim 3s linear infinite;
-    background-image: url(https://media.giphy.com/media/eYRGWfchREFUUlXT7P/giphy.gif), linear-gradient(302deg, #24599d 0%, #fff 100%);
-    background-size: 10em, 17em;
-    font-weight: bold;
-    position: relative;
-    text-shadow: 1px 2px 12px rgba(98, 207, 203, 0.2);
-}
-
-/* VIP Tier 2 - Pink/Purple Gradient */
-.VIP {
-    -webkit-background-clip: border-box, border-box, text;
-    -webkit-text-fill-color: transparent;
-    animation: playboy 3.5s cubic-bezier(0.4, 0, 1, 1) 0s running;
-    background-image: url(https://i.ibb.co/QFZx8P5Q/cWvW3KS.gif), url(https://i.ibb.co/1Vpr5yk/jxlCmc9.gif), linear-gradient(200deg, rgb(254 39 191) 20%, rgb(254 39 191) 30%, rgb(254 39 191) 40%, rgb(254 39 91) 50%, rgb(254 39 191) 60%, rgb(255, 31, 110) 70%, rgb(255, 55, 255) 80%);
-    background-size: 10em, 10em, 5em;
-    font-weight: bold;
-    text-shadow: 1px 1px 15px rgb(255 0 224 / 88%);
-    transition: .3s;
-}
-
-/* VIP Tier 3 - Green Sparkle with Border */
-.VIP3 {
-    -webkit-background-clip: border-box, border-box, text;
-    -webkit-text-fill-color: transparent;
-    background-image: url(https://i.ibb.co/R60RZRS/sparkling.gif), url(https://i.ibb.co/R60RZRS/sparkling.gif), linear-gradient(178deg, #199800, #2aff00, #199800);
-    background-size: 10em, 10em, 5em;
-    border-bottom: 5px dotted #2aff00;
-    font-weight: bold;
-    text-shadow: 1px 1px 5px #2aff00;
-}
-
-/* VIP Tier 4 - Rainbow Effect */
-.VIP4 {
-    -webkit-background-clip: border-box, text !important;
-    -webkit-text-fill-color: transparent !important;
-    animation: logfo-animation 4s linear infinite !important;
-    background-image: url(https://i.ibb.co/fQh97LR/particles-log-fo.gif), repeating-linear-gradient(90deg, #fff 0%, #FF0000 15%, #FF8000 25%, #F7FF00 35%, #FF0000 45%, #55FF00 55%, #03FFFF 65%, #0022FF 75%, #A100FF 85%, #FF00E6 95%, #fff 100%) !important;
-    background-size: 4em, 500px !important;
-    border-radius: 11px;
-    filter: saturate(2) !important;
-    font-weight: 600 !important;
-    padding: 13px;
-    text-shadow: 2px 2px 15px #000000 !important;
-}
-
-/* VIP Tier 5 - Blue Lightning */
-.VIP5 {
-    -webkit-background-clip: text, text, border-box, border-box, border-box;
-    -webkit-text-fill-color: transparent;
-    animation: myproxiesanim 5s linear infinite;
-    background-image: url(https://i.ibb.co/1fJ1DHNS/k6rhOtN.gif), radial-gradient(circle, rgba(21, 170, 255, 1) 8%, rgba(85, 208, 255, 1) 19%, rgba(173, 247, 242, 1) 35%, rgba(156, 238, 243, 1) 60%, rgba(21, 170, 255, 1) 70%, rgba(8, 8, 255, 1) 87%, rgba(255, 255, 255, 1) 100%), url(https://i.ibb.co/DtJBDNy/white-lightning.gif), url(https://i.ibb.co/GQwMrZzR/afWakbq.gif);
-    background-size: 5em, 15% 800%, 10em, 25em;
-    font-weight: 1000;
-    position: relative;
-    transition: .3s;
-}
 
 /* ==========================================
    CUSTOM USERNAME EFFECTS (Examples from base.css)
    ========================================== */
-
-/* bill username - Blue gradient with sparkles */
-.chat-msg-bill .username {
-    --bg-pos: .2em -.07em;
-    -webkit-background-clip: border-box, text;
-    -webkit-text-fill-color: transparent;
-    background-image: url(https://media.giphy.com/media/eYRGWfchREFUUlXT7P/giphy.gif), linear-gradient(302deg, #24599d 0%, #fff 100%);
-    background-size: 10em, 17em;
-    font-weight: 1000;
-    position: relative;
-    text-shadow: 1px 2px 12px rgb(98 207 203 / 50%);
-}
-
-/* bill2 username - Orange gradient with animated divider */
-.chat-msg-bill2 .username {
-    --bg-pos: .2em -.07em;
-    -webkit-background-clip: border-box, text;
-    -webkit-text-fill-color: transparent;
-    background-image: url(https://shadow-of-valtus.neocities.org/Graphics/Dividers/kingluludeer_eyedivider.gif), linear-gradient(323deg, #a33000 0%, #ff8d00d9 100%);
-    background-size: 14em, 18em;
-    font-weight: 1000;
-    position: relative;
-    text-shadow: 1px 2px 12px rgb(108 199 0 / 50%);
-}
-
-/* CherryRound username - Red gradient */
-.chat-msg-CherryRound .username {
-    --bg-pos: .2em -.07em;
-    -webkit-background-clip: border-box, text;
-    -webkit-text-fill-color: transparent;
-    background-image: url(https://media.giphy.com/media/eYRGWfchREFUUlXT7P/giphy.gif), linear-gradient(302deg, #cd0000 0%, #6f0202 100%);
-    background-size: 10em, 17em;
-    font-weight: 1000;
-    position: relative;
-    text-shadow: 1px 2px 12px rgb(255 0 0 / 50%);
-}
-
-/* Zeb-Dev username - Cyan/blue lightning effect */
-.chat-msg-Zeb-Dev .username {
-    -webkit-background-clip: text, text, border-box, border-box, border-box;
-    -webkit-text-fill-color: transparent;
-    animation: myproxiesanim 5s linear infinite;
-    background-image: url(https://i.ibb.co/1fJ1DHNS/k6rhOtN.gif), radial-gradient(circle, rgba(21, 170, 255, 1) 8%, rgba(85, 208, 255, 1) 19%, rgba(173, 247, 242, 1) 35%, rgba(156, 238, 243, 1) 60%, rgba(21, 170, 255, 1) 70%, rgb(8 255 177) 87%, rgba(255, 255, 255, 1) 100%), url(https://i.ibb.co/DtJBDNy/white-lightning.gif), url(https://i.ibb.co/GQwMrZzR/afWakbq.gif);
-    background-size: 5em, 15% 800%, 10em, 25em;
-    font-weight: 1000;
-    position: relative;
-    transition: .3s;
-}
 
 /* Quigly — developer rainbow username */
 .chat-msg-Quigly .username {
@@ -1359,49 +1285,6 @@ body.btfw-ts-hide #messagebuffer .timestamp { display:none !important; }
     filter: saturate(2) !important;
     font-weight: 600 !important;
 }
-.chat-msg-J44J .username {
-text-shadow: 6px 6px 2px #424242b3, 5px 5px 2px #808080, 9px 2px 3px #808080a6 !important;
-    font-family: Courier New;
-    -webkit-text-fill-color: #e4e1e7bf;
-    animation: lights 8s 750ms linear infinite;
-}
-/* Vices username - Purple glow */
-.chat-msg-Vices .username {
-    -webkit-text-fill-color: #b26dff91;
-    animation: lights 2s 750ms linear infinite;
-    letter-spacing: 0.02em;
-}
-.chat-msg-Nailgun .username {
-    -webkit-background-clip: text, text, border-box, border-box, border-box;
-    -webkit-text-fill-color: transparent;
-    animation: myproxiesanim 20s 
-linear infinite;
-    background-image: url(https://i.ibb.co/1fJ1DHNS/k6rhOtN.gif), radial-gradient(circle, rgb(21 255 32) 8%, rgb(202 255 74) 19%, rgba(173, 247, 242, 1) 35%, rgba(156, 238, 243, 1) 60%, rgba(21, 170, 255, 1) 70%, rgb(65 0 118) 87%, rgba(255, 255, 255, 1) 100%), url(https://i.ibb.co/DtJBDNy/white-lightning.gif), url(https://i.ibb.co/GQwMrZzR/afWakbq.gif);
-    background-size: 5em, 15% 800%, 10em, 25em;
-    position: relative;
-    transition: .3s;
-}
-.chat-msg-hunchback .username {
-    -webkit-background-clip: border-box, border-box, text;
-    -webkit-text-fill-color: transparent;
-    animation: playboy 3.5s 
-cubic-bezier(0.4, 0, 1, 1) 0s running;
-    background-image: url(https://i.ibb.co/QFZx8P5Q/cWvW3KS.gif), url(https://i.ibb.co/1Vpr5yk/jxlCmc9.gif), linear-gradient(200deg, rgb(39 85 254) 20%, rgb(209 74 147) 30%, rgb(254 39 39) 40%, rgb(254 39 91) 50%, rgb(254 39 191) 60%, rgb(255 33 84) 70%, rgb(231 85 85) 80%);
-    background-size: 10em, 10em, 5em;
-    font-weight: bold;
-    text-shadow: 1px 1px 15px rgb(255 173 173 / 62%);
-    transition: .3s;
-}
-.chat-msg-RandomRetard .username {
-    -webkit-background-clip: border-box, border-box, text;
-    -webkit-text-fill-color: transparent;
-    background-image: url(https://i.ibb.co/R60RZRS/sparkling.gif), url(https://i.ibb.co/R60RZRS/sparkling.gif), linear-gradient(178deg, #419800, #66ffb4, #00983d);
-    background-size: 7em, 7em, 5em;
-    font-weight: bold;
-    text-shadow: 1px 1px 5px #0c955c;
-}
-
-
 
 /* ==========================================
    REQUIRED ANIMATIONS
@@ -1488,16 +1371,6 @@ cubic-bezier(0.4, 0, 1, 1) 0s running;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 4;
+  line-clamp: 4;
   -webkit-box-orient: vertical;
 }
-
-
-
-
-
-
-
-
-
-
-

@@ -658,8 +658,8 @@ BTFW.define("feature:themeSettings", ["util:themeRuntime", "util:themePresets"],
       updateLabel(chatTextSlider.value || "14");
     }
 
-    // Open via event
-    document.addEventListener("btfw:openThemeSettings", open);
+    // Open via event (also wired at boot via wireOpenEvent)
+    if (!openEventWired) wireOpenEvent();
 
     const ignoreListEl = $("#btfw-ignore-list", m);
     const ignoreForm = $("#btfw-ignore-form", m);
@@ -836,6 +836,14 @@ BTFW.define("feature:themeSettings", ["util:themeRuntime", "util:themePresets"],
 
   const OPEN_SELECTOR = "#btfw-theme-btn-chat, #btfw-theme-btn-nav, .btfw-theme-open";
   let delegatedOpeners = false;
+  let openEventWired = false;
+
+  function wireOpenEvent(){
+    if (openEventWired) return;
+    openEventWired = true;
+    document.addEventListener("btfw:openThemeSettings", open);
+  }
+
   function wireOpeners(){
     if (delegatedOpeners) return;
     delegatedOpeners = true;
@@ -1006,6 +1014,7 @@ BTFW.define("feature:themeSettings", ["util:themeRuntime", "util:themePresets"],
     applyChatTextPx(parseInt(get(TS_KEYS.chatTextPx, "14"),10));
     applyEmoteSize(get(TS_KEYS.emoteSize,"medium"));
     wireOpeners();
+    wireOpenEvent();
     decorateUserOptions();
     bindUserOptions();
   }
