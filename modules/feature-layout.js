@@ -41,24 +41,6 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
     return overlay.offsetHeight || 0;
   }
 
-  function measureVisibleStackHeight(primaryRowH){
-    if (!isVertical) return 0;
-    const stack = document.getElementById("btfw-stack");
-    if (!stack || isStackFullyHidden()) return 0;
-    const style = getComputedStyle(stack);
-    if (style.display === "none" || stack.hidden) return 0;
-
-    const videoMin = VIDEO_MIN_HEIGHT_PX;
-    const maxStack = Math.max(100, primaryRowH - videoMin - 12);
-
-    if (isVertical) {
-      return Math.min(480, Math.floor(primaryRowH * 0.44), maxStack);
-    }
-
-    const measured = stack.offsetHeight || 0;
-    return Math.min(Math.max(measured, 100), maxStack);
-  }
-
   function getTopEffectivePx(){
     const root = document.documentElement;
     const navReal = parseFloat(getComputedStyle(root).getPropertyValue("--btfw-nav-real-height")) || 48;
@@ -72,17 +54,19 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
     return Math.max(0, viewportH - topEffective - gap * 2);
   }
 
+  function roundLayoutPx(value){
+    return Math.max(0, Math.round(value / 2) * 2);
+  }
+
   function applyViewportBudget(){
     const root = document.documentElement;
     const topEffective = getTopEffectivePx();
     const gap = parseFloat(getComputedStyle(root).getPropertyValue("--btfw-gap")) || 10;
     const primaryRowH = getPrimaryRowHeight();
-    const stackReserved = measureVisibleStackHeight(primaryRowH);
 
     root.style.setProperty("--btfw-top-effective", `${topEffective}px`);
     root.style.setProperty("--btfw-primary-budget", `${Math.floor(primaryRowH)}px`);
     root.style.setProperty("--btfw-primary-row-h", `${Math.floor(primaryRowH)}px`);
-    root.style.setProperty("--btfw-stack-max-h", stackReserved > 0 ? `${stackReserved}px` : "0px");
 
     const leftpad = document.getElementById("btfw-leftpad");
     const colW = isVertical
@@ -98,19 +82,19 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
       return;
     }
 
-    const chatMin = 220;
-    const pairBudget = primaryRowH - stackReserved - gap * 2;
-    const overlayH = measureOverlayHeight();
-    let videowrapMaxH = Math.min(
-      pairBudget - chatMin - overlayH,
-      aspectCap,
-      Math.floor((pairBudget - overlayH) * 0.55)
-    );
+    root.style.setProperty("--btfw-stack-max-h", "none");
 
-    videowrapMaxH = Math.max(VIDEO_MIN_HEIGHT_PX, Math.floor(videowrapMaxH));
-    const videoRowH = videowrapMaxH + overlayH;
+    const overlayH = roundLayoutPx(measureOverlayHeight());
+    const half = roundLayoutPx(Math.floor(primaryRowH / 2));
+    let videowrapH = Math.max(VIDEO_MIN_HEIGHT_PX, half - overlayH);
+    videowrapH = roundLayoutPx(Math.min(videowrapH, aspectCap));
+    const videoRowH = videowrapH + overlayH;
+    const chatRowH = half;
+
     root.style.setProperty("--btfw-video-chrome-h", `${overlayH}px`);
-    root.style.setProperty("--btfw-videowrap-max-h", `${videowrapMaxH}px`);
+    root.style.setProperty("--btfw-videowrap-max-h", `${videowrapH}px`);
+    root.style.setProperty("--btfw-vertical-video-row-h", `${videoRowH}px`);
+    root.style.setProperty("--btfw-vertical-chat-row-h", `${chatRowH}px`);
     root.style.setProperty("--btfw-video-row-h", `${videoRowH}px`);
     root.style.setProperty("--btfw-video-max-h", `${videoRowH}px`);
   }
@@ -122,33 +106,43 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
     const root = document.documentElement;
     const chat = document.getElementById("btfw-chatcol");
     const leftpad = document.getElementById("btfw-leftpad");
-    const grid = document.getElementById("btfw-grid");
+    if (!chat || !leftpad) return;
 
-    const targets = [chat, leftpad, grid].filter(Boolean);
-    const maxBottom = Math.max(...targets.map((el) => el.getBoundingClientRect().bottom));
-    if (maxBottom <= viewportH - margin) return;
+    const chatBottom = chat.getBoundingClientRect().bottom;
+    if (chatBottom <= viewportH - margin) return;
 
-    const overflow = maxBottom - (viewportH - margin);
-    const currentStack = parseFloat(getComputedStyle(root).getPropertyValue("--btfw-stack-max-h")) || 0;
-    const currentVideoRow = parseFloat(getComputedStyle(root).getPropertyValue("--btfw-video-row-h"))
-      || parseFloat(getComputedStyle(root).getPropertyValue("--btfw-video-max-h"))
-      || 0;
+    const overflow = chatBottom - (viewportH - margin);
     const overlayH = measureOverlayHeight();
+    const currentChat = parseFloat(getComputedStyle(root).getPropertyValue("--btfw-vertical-chat-row-h"))
+      || chat.getBoundingClientRect().height
+      || 0;
+    const currentVideoRow = parseFloat(getComputedStyle(root).getPropertyValue("--btfw-vertical-video-row-h"))
+      || parseFloat(getComputedStyle(root).getPropertyValue("--btfw-video-row-h"))
+      || 0;
     const currentVideowrap = Math.max(0, currentVideoRow - overlayH);
 
-    if (currentStack > 100) {
-      root.style.setProperty("--btfw-stack-max-h", `${Math.max(80, Math.floor(currentStack - overflow))}px`);
-      applyViewportBudget();
+    const setVideoRow = (videowrapPx) => {
+      const nextVideowrap = Math.max(VIDEO_MIN_HEIGHT_PX, Math.floor(videowrapPx));
+      const nextRowH = nextVideowrap + overlayH;
+      root.style.setProperty("--btfw-videowrap-max-h", `${nextVideowrap}px`);
+      root.style.setProperty("--btfw-vertical-video-row-h", `${nextRowH}px`);
+      root.style.setProperty("--btfw-video-row-h", `${nextRowH}px`);
+      root.style.setProperty("--btfw-video-max-h", `${nextRowH}px`);
+    };
+
+    if (currentChat > 180) {
+      const chatShrink = Math.min(overflow, currentChat - 180);
+      root.style.setProperty("--btfw-vertical-chat-row-h", `${Math.floor(currentChat - chatShrink)}px`);
+      const remaining = overflow - chatShrink;
+      if (remaining > 0 && currentVideowrap > VIDEO_MIN_HEIGHT_PX) {
+        setVideoRow(currentVideowrap - remaining);
+      }
       refreshVideoSizing();
       return;
     }
 
     if (currentVideowrap > VIDEO_MIN_HEIGHT_PX) {
-      const nextVideowrap = Math.max(VIDEO_MIN_HEIGHT_PX, Math.floor(currentVideowrap - overflow));
-      const nextRowH = nextVideowrap + overlayH;
-      root.style.setProperty("--btfw-videowrap-max-h", `${nextVideowrap}px`);
-      root.style.setProperty("--btfw-video-row-h", `${nextRowH}px`);
-      root.style.setProperty("--btfw-video-max-h", `${nextRowH}px`);
+      setVideoRow(currentVideowrap - overflow);
       refreshVideoSizing();
     }
   }
@@ -632,6 +626,18 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
   }
 
   let layoutFrame = 0;
+  let budgetFrame = 0;
+
+  function scheduleViewportBudget(){
+    if (budgetFrame) return;
+    budgetFrame = requestAnimationFrame(() => {
+      budgetFrame = 0;
+      if (!isVertical) return;
+      applyViewportBudget();
+      alignPrimaryRowBottoms();
+      refreshVideoSizing();
+    });
+  }
 
   function scheduleResponsiveLayout(){
     if (layoutFrame) return;
@@ -647,8 +653,7 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:bulma"], async ({}) 
     overlay._btfwChromeObs = true;
     const ro = new ResizeObserver(() => {
       if (!isVertical) return;
-      applyViewportBudget();
-      requestAnimationFrame(alignPrimaryRowBottoms);
+      scheduleViewportBudget();
     });
     ro.observe(overlay);
   }

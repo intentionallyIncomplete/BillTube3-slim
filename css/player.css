@@ -14,6 +14,15 @@
   content-visibility: auto;
 }
 
+#btfw-grid.btfw-grid--vertical #videowrap {
+  max-height: var(--btfw-videowrap-max-h, var(--btfw-video-max-h));
+  height: var(--btfw-videowrap-max-h, auto);
+  min-height: 120px;
+  aspect-ratio: unset;
+  flex: 1 1 auto;
+  content-visibility: visible;
+}
+
 #videowrap::after{
   content: "";
   position: absolute;
@@ -572,7 +581,6 @@
   background: var(--btfw-color-panel);
   border: 0;
   color: var(--btfw-color-text);
-  buffered-rendering: auto;
   text-rendering: optimizeSpeed;
 }
 

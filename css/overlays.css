@@ -274,13 +274,15 @@
 }
 
 .btfw-chat-bottombar {
-  position: sticky;
-  bottom: 0;
+  position: relative;
+  bottom: auto;
   z-index: 10;
   padding: 8px 10px 10px;
   border-radius: 0;
   isolation: isolate;
   background: transparent;
+  flex-shrink: 0;
+  contain: layout style;
 }
 
 .btfw-chat-composer {

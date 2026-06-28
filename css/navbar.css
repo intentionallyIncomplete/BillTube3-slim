@@ -392,6 +392,54 @@ form#logoutform.btfw-logoutform--hidden,
   display: block;
 }
 
+.btfw-nav-access-btn {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 6002;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--btfw-color-accent) 42%, transparent 58%);
+  background: color-mix(in srgb, var(--btfw-color-panel) 92%, transparent 8%);
+  color: var(--btfw-navbar-link, var(--btfw-color-text));
+  box-shadow: var(--btfw-navbar-shadow, 0 8px 24px rgba(0, 0, 0, 0.28));
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, filter 0.18s ease;
+}
+
+.btfw-nav-menu-shell .btfw-nav-access-btn {
+  position: relative;
+  top: auto;
+  right: auto;
+}
+
+.btfw-nav-menu-btn.is-expanded {
+  filter: brightness(1.1);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--btfw-color-accent) 55%, transparent 45%);
+}
+
+.btfw-nav-access-btn[hidden] {
+  display: none !important;
+}
+
+.btfw-nav-access-btn:hover,
+.btfw-nav-access-btn:focus-visible {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--btfw-color-accent) 22%, var(--btfw-color-panel) 78%);
+  outline: none;
+}
+
+.btfw-nav-access-btn__icon {
+  display: inline-flex;
+  font-size: 14px;
+}
+
 #btfw-navhost.btfw-navhost--autohide[data-nav-revealed="true"] {
   transform: translateY(0);
   opacity: 1;
@@ -400,4 +448,26 @@ form#logoutform.btfw-logoutform--hidden,
 
 #btfw-navhost.btfw-navhost--autohide[data-nav-revealed="true"] > :is(nav.navbar, .navbar, #navbar, .navbar-fixed-top) {
   pointer-events: auto;
+}
+
+/* ---------- Stacked layout: hide navbar; Menu shell owns navigation ---------- */
+#btfw-navhost.btfw-navhost--stacked-menu {
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+#btfw-navhost.btfw-navhost--stacked-menu > :is(nav.navbar, .navbar, #navbar, .navbar-fixed-top) {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
