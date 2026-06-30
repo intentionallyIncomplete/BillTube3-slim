@@ -1,4 +1,4 @@
-// BTFW Audio Processing System - Combined Boost + Normalization + Reconnect-safe auto-reproxy watchdog
+// BTFW Audio Processing System - Boost, normalization, mono/stereo fix, reconnect-safe proxy watchdog
 (function() {
   'use strict';
 
@@ -6,6 +6,13 @@
   const WATCHDOG_TICK_MS      = 800;    // polling backup
   const REAPPLY_DEBOUNCE_MS   = 800;    // avoid rapid re-sets
   const DEFAULT_CORS_PROXY    = 'https://vidprox.billtube.workers.dev/?url=';
+
+  function mediaSourceRegistry() {
+    if (!window.__btfwMediaSourceNodes) {
+      window.__btfwMediaSourceNodes = new WeakMap();
+    }
+    return window.__btfwMediaSourceNodes;
+  }
 
   function safeNow() { return Date.now(); }
 
@@ -15,6 +22,9 @@
     _sourceMediaElement: null,
     compressorNode: null,
     gainNode: null,
+    splitterNode: null,
+    monoMixGain: null,
+    mergerNode: null,
     player: null,
 
     // URL state
@@ -25,6 +35,7 @@
     // Feature flags
     boostEnabled: false,
     normalizationEnabled: false,
+    monoEnabled: false,
 
     // Proxy and params
     get CORS_PROXY() {
@@ -50,6 +61,7 @@
     _lastKnownSrc: null,
     _lastInternalSrcSetAt: 0,
     _lastAutoReapplyAt: 0,
+    _rebuildInFlight: null,
 
     NORM_PRESETS: {
       gentle:     { threshold: -12, knee: 20, ratio: 6,  attack: 0.01,  release: 0.5,  label: 'Gentle' },
@@ -75,8 +87,7 @@
     },
 
     _shouldForceProxy() {
-      // We proxy iff any processing is on. (You can change this policy if you want â€œalways proxyâ€.)
-      return this.boostEnabled || this.normalizationEnabled;
+      return this.boostEnabled || this.normalizationEnabled || this.monoEnabled;
     },
 
     _hasAnonymousCrossOrigin() {
@@ -131,35 +142,128 @@
         try { this.gainNode.disconnect(); } catch (_) {}
         this.gainNode = null;
       }
+      if (this.splitterNode) {
+        try { this.splitterNode.disconnect(); } catch (_) {}
+        this.splitterNode = null;
+      }
+      if (this.monoMixGain) {
+        try { this.monoMixGain.disconnect(); } catch (_) {}
+        this.monoMixGain = null;
+      }
+      if (this.mergerNode) {
+        try { this.mergerNode.disconnect(); } catch (_) {}
+        this.mergerNode = null;
+      }
     },
 
     resetMediaBinding() {
       this.disconnectChain();
+      const videoEl = this._getMediaElement();
+      if (videoEl && this._syncFromRegistry(videoEl)) {
+        if (this.audioContext?.state === 'running') {
+          this.audioContext.suspend().catch(() => {});
+        }
+        return;
+      }
       this.sourceNode = null;
       this._sourceMediaElement = null;
-      if (this.audioContext && this.audioContext.state !== 'closed') {
-        this.audioContext.close().catch(() => {});
+      if (this.audioContext?.state === 'running') {
+        this.audioContext.suspend().catch(() => {});
       }
-      this.audioContext = null;
+    },
+
+    _swapVideoTechElement(videoEl) {
+      const tech = this.player?.tech_;
+      if (!tech?.el_ || tech.el_ !== videoEl) return null;
+
+      const parent = videoEl.parentNode;
+      if (!parent) return null;
+
+      const tag = videoEl.tagName.toLowerCase() === 'audio' ? 'audio' : 'video';
+      const newEl = document.createElement(tag);
+      newEl.className = videoEl.className;
+      if (videoEl.id) newEl.id = videoEl.id;
+      newEl.setAttribute('playsinline', '');
+      newEl.setAttribute('webkit-playsinline', '');
+      if (!newEl.classList.contains('vjs-tech')) {
+        newEl.classList.add('vjs-tech');
+      }
+
+      const cross = videoEl.crossOrigin || videoEl.getAttribute('crossorigin');
+      if (cross) {
+        newEl.crossOrigin = cross;
+        newEl.setAttribute('crossorigin', cross);
+      }
+
+      parent.replaceChild(newEl, videoEl);
+      tech.el_ = newEl;
+      delete videoEl.__btfwSourceNode;
+
+      return newEl;
+    },
+
+    _syncFromRegistry(videoEl) {
+      const cached = mediaSourceRegistry().get(videoEl) || videoEl.__btfwSourceNode || null;
+      if (!cached) return null;
+      mediaSourceRegistry().set(videoEl, cached);
+      this.sourceNode = cached;
+      this._sourceMediaElement = videoEl;
+      if (cached.context && cached.context.state !== 'closed') {
+        this.audioContext = cached.context;
+      }
+      return cached;
     },
 
     _getOrCreateSourceNode(videoEl) {
-      if (this.sourceNode && this._sourceMediaElement === videoEl) {
-        return this.sourceNode;
+      const registry = mediaSourceRegistry();
+      let cached = registry.get(videoEl) || videoEl.__btfwSourceNode || null;
+      if (cached) {
+        registry.set(videoEl, cached);
+        this.sourceNode = cached;
+        this._sourceMediaElement = videoEl;
+        if (cached.context && cached.context.state !== 'closed') {
+          this.audioContext = cached.context;
+        }
+        return cached;
       }
 
-      if (this.sourceNode && this._sourceMediaElement !== videoEl) {
-        this.sourceNode = null;
-        this._sourceMediaElement = null;
+      if (this.sourceNode && this._sourceMediaElement === videoEl) {
+        registry.set(videoEl, this.sourceNode);
+        videoEl.__btfwSourceNode = this.sourceNode;
+        return this.sourceNode;
       }
 
       if (!this.audioContext || this.audioContext.state === 'closed') {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
       }
 
-      this.sourceNode = this.audioContext.createMediaElementSource(videoEl);
+      let node;
+      try {
+        node = this.audioContext.createMediaElementSource(videoEl);
+      } catch (err) {
+        if (err?.name !== 'InvalidStateError') throw err;
+
+        const synced = this._syncFromRegistry(videoEl);
+        if (synced) return synced;
+
+        const freshEl = this._swapVideoTechElement(videoEl);
+        if (!freshEl) throw err;
+
+        const src = this.player?.currentSrc();
+        if (src && this.player) {
+          this._markInternalSrcSet();
+          this.player.src({ src, type: 'video/mp4' });
+          try { this.player.load(); } catch (_) {}
+        }
+
+        return this._getOrCreateSourceNode(freshEl);
+      }
+
+      registry.set(videoEl, node);
+      videoEl.__btfwSourceNode = node;
+      this.sourceNode = node;
       this._sourceMediaElement = videoEl;
-      return this.sourceNode;
+      return node;
     },
 
     cleanup() {
@@ -366,17 +470,34 @@
     },
 
     async rebuildAudioChain() {
+      if (this._rebuildInFlight) {
+        return this._rebuildInFlight;
+      }
+
+      this._rebuildInFlight = this._rebuildAudioChainImpl();
+      try {
+        return await this._rebuildInFlight;
+      } finally {
+        this._rebuildInFlight = null;
+      }
+    },
+
+    async _rebuildAudioChainImpl() {
       if (!this.player) {
         console.error('[BTFW_AUDIO] Player not ready');
         return false;
       }
 
-      if (this.boostEnabled || this.normalizationEnabled) {
+      if (this.boostEnabled || this.normalizationEnabled || this.monoEnabled) {
         if (!this.isProxied && !this._isTrusted(this.player.currentSrc())) {
           await this.ensureProxy();
         } else if (this._shouldForceProxy()) {
           this._ensureAnonymousCrossOrigin();
         }
+      }
+
+      if (!this.boostEnabled && !this.normalizationEnabled && !this.monoEnabled) {
+        return true;
       }
 
       this.disconnectChain();
@@ -410,6 +531,20 @@
           currentNode = this.compressorNode;
         }
 
+        if (this.monoEnabled) {
+          this.splitterNode = this.audioContext.createChannelSplitter(2);
+          this.monoMixGain = this.audioContext.createGain();
+          this.monoMixGain.gain.value = 0.5;
+          this.mergerNode = this.audioContext.createChannelMerger(2);
+
+          currentNode.connect(this.splitterNode);
+          this.splitterNode.connect(this.monoMixGain, 0);
+          this.splitterNode.connect(this.monoMixGain, 1);
+          this.monoMixGain.connect(this.mergerNode, 0, 0);
+          this.monoMixGain.connect(this.mergerNode, 0, 1);
+          currentNode = this.mergerNode;
+        }
+
         if (this.boostEnabled) {
           this.gainNode = this.audioContext.createGain();
           this.gainNode.gain.value = this.BOOST_MULTIPLIER;
@@ -426,6 +561,7 @@
         console.log('[BTFW_AUDIO] Chain rebuilt:', {
           normalization: this.normalizationEnabled,
           boost: this.boostEnabled,
+          mono: this.monoEnabled,
           proxied: this.isProxied
         });
 
@@ -448,7 +584,7 @@
     async disableBoost() {
       this.boostEnabled = false;
 
-      if (this.normalizationEnabled) {
+      if (this.normalizationEnabled || this.monoEnabled) {
         const ok = await this.rebuildAudioChain();
         if (!this._shouldForceProxy()) this.stopWatchdog();
         return ok;
@@ -505,7 +641,46 @@
     async disableNormalization() {
       this.normalizationEnabled = false;
 
-      if (this.boostEnabled) {
+      if (this.boostEnabled || this.monoEnabled) {
+        const ok = await this.rebuildAudioChain();
+        if (!this._shouldForceProxy()) this.stopWatchdog();
+        return ok;
+      } else {
+        this.cleanup();
+
+        if (this.originalSrc && this.isProxied) {
+          const currentTime = this.player.currentTime();
+          const wasPlaying = !this.player.paused();
+
+          try { this.player.pause(); } catch {}
+          try { this.player.crossOrigin(null); } catch {}
+
+          this._markInternalSrcSet();
+          this.player.src({ src: this.originalSrc, type: 'video/mp4' });
+          try { this.player.load(); } catch {}
+
+          this.player.ready(() => {
+            try { this.player.currentTime(currentTime); } catch {}
+            this.isProxied = false;
+            if (wasPlaying) {
+              this.player.play().catch(() => {});
+            }
+          });
+        }
+        return true;
+      }
+    },
+
+    async enableMono() {
+      this.monoEnabled = true;
+      const ok = await this.rebuildAudioChain();
+      return ok;
+    },
+
+    async disableMono() {
+      this.monoEnabled = false;
+
+      if (this.boostEnabled || this.normalizationEnabled) {
         const ok = await this.rebuildAudioChain();
         if (!this._shouldForceProxy()) this.stopWatchdog();
         return ok;
@@ -537,7 +712,7 @@
   };
 })();
 
-// Audio Boost Module
+// Audio controls module (boost, normalization, mono/stereo)
 (function() {
   'use strict';
 
@@ -550,14 +725,16 @@
   }
 
   whenBTFWReady(function() {
-    BTFW.define("feature:audioboost", [], async () => {
+    BTFW.define("feature:audio", [], async () => {
       const $ = (selector, root = document) => root.querySelector(selector);
       const sharedAudio = window.BTFW_AUDIO;
 
       let boostButton = null;
       let normButton = null;
+      let monoButton = null;
       let shouldBoostAfterMediaChange = false;
       let shouldNormalizeAfterMediaChange = false;
+      let shouldMonoAfterMediaChange = false;
       let boostContextMenu = null;
       let normContextMenu = null;
 
@@ -706,6 +883,75 @@
         updateNormButtonState(false);
       }
 
+      function updateMonoButtonState(active) {
+        if (!monoButton) return;
+
+        if (active) {
+          monoButton.classList.add('active');
+          monoButton.style.background = 'rgba(155, 89, 182, 0.3)';
+          monoButton.style.borderColor = '#9b59b6';
+          monoButton.style.color = '#9b59b6';
+          monoButton.style.boxShadow = '0 0 12px rgba(155, 89, 182, 0.6)';
+        } else {
+          monoButton.classList.remove('active');
+          monoButton.style.background = '';
+          monoButton.style.borderColor = '';
+          monoButton.style.color = '';
+          monoButton.style.boxShadow = '';
+        }
+      }
+
+      function showMonoToast(message, type = 'info') {
+        let toast = $('#btfw-mono-toast');
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.id = 'btfw-mono-toast';
+          toast.style.cssText = `
+            position: fixed;
+            top: 120px;
+            right: 20px;
+            background: ${type === 'success' ? 'rgba(155, 89, 182, 0.9)' : 'rgba(235, 77, 75, 0.9)'};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: system-ui, -apple-system, sans-serif;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+          `;
+          document.body.appendChild(toast);
+        }
+
+        toast.textContent = message;
+        toast.style.background = type === 'success' ? 'rgba(155, 89, 182, 0.9)' : 'rgba(235, 77, 75, 0.9)';
+        toast.style.opacity = '1';
+
+        setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+      }
+
+      async function activateMonoAudio() {
+        const success = await sharedAudio.enableMono();
+        if (success) {
+          shouldMonoAfterMediaChange = true;
+          showMonoToast('Stereo audio enabled', 'success');
+          updateMonoButtonState(true);
+        } else {
+          const msg = sharedAudio._hasIframeOnlyMedia()
+            ? 'Mono audio requires direct video playback'
+            : 'Failed to activate';
+          showMonoToast(msg, 'error');
+        }
+      }
+
+      async function deactivateMonoAudio() {
+        await sharedAudio.disableMono();
+        shouldMonoAfterMediaChange = false;
+        updateMonoButtonState(false);
+      }
+
       function createBoostButton() {
         const btn = document.createElement('button');
         btn.id = 'btfw-vo-audioboost';
@@ -759,6 +1005,25 @@
               hideNormContextMenu();
             }
           }, 100);
+        });
+
+        return btn;
+      }
+
+      function createMonoButton() {
+        const btn = document.createElement('button');
+        btn.id = 'btfw-vo-mono';
+        btn.className = 'btn btn-sm btn-default btfw-vo-adopted';
+        btn.title = 'Toggle Mono Audio (mix both channels to stereo)';
+        btn.setAttribute('data-btfw-overlay', '1');
+        btn.innerHTML = '<i class="fa-solid fa-headphones"></i>';
+
+        btn.addEventListener('click', () => {
+          if (sharedAudio.monoEnabled) {
+            deactivateMonoAudio();
+          } else {
+            activateMonoAudio();
+          }
         });
 
         return btn;
@@ -990,11 +1255,15 @@
         if (existingBoost) existingBoost.remove();
         const existingNorm = $('#btfw-vo-audionorm');
         if (existingNorm) existingNorm.remove();
+        const existingMono = $('#btfw-vo-mono');
+        if (existingMono) existingMono.remove();
 
         boostButton = createBoostButton();
         normButton = createNormButton();
+        monoButton = createMonoButton();
         voLeft.appendChild(boostButton);
         voLeft.appendChild(normButton);
+        voLeft.appendChild(monoButton);
         return true;
       }
 
@@ -1028,9 +1297,11 @@
           sharedAudio.resetMediaBinding();
           sharedAudio.boostEnabled = false;
           sharedAudio.normalizationEnabled = false;
+          sharedAudio.monoEnabled = false;
           sharedAudio.isProxied = false;
           updateBoostButtonState(false);
           updateNormButtonState(false);
+          updateMonoButtonState(false);
           initializePlayer();
 
           if (shouldBoostAfterMediaChange) {
@@ -1038,6 +1309,9 @@
           }
           if (shouldNormalizeAfterMediaChange) {
             setTimeout(() => { activateNormalization(); }, 1200);
+          }
+          if (shouldMonoAfterMediaChange) {
+            setTimeout(() => { activateMonoAudio(); }, 1200);
           }
         }, 600);
       }
@@ -1069,18 +1343,22 @@
       }
 
       return {
-        name: "feature:audioboost",
+        name: "feature:audio",
         activate: activateAudioBoost,
         deactivate: deactivateAudioBoost,
         isActive: () => sharedAudio.boostEnabled,
         activateNormalization,
         deactivateNormalization,
-        isNormalizationActive: () => sharedAudio.normalizationEnabled
+        isNormalizationActive: () => sharedAudio.normalizationEnabled,
+        activateMono: activateMonoAudio,
+        deactivateMono: deactivateMonoAudio,
+        isMonoActive: () => sharedAudio.monoEnabled
       };
     });
 
-    // Legacy id used by billtube-fw < v1.0.6
-    BTFW.define("feature:audio-boost", ["feature:audioboost"], async (ctx) => ctx.init("feature:audioboost"));
-    BTFW.define("feature:audionorm", ["feature:audioboost"], async (ctx) => ctx.init("feature:audioboost"));
+    BTFW.define("feature:audioboost", ["feature:audio"], async (ctx) => ctx.init("feature:audio"));
+    BTFW.define("feature:audio-boost", ["feature:audio"], async (ctx) => ctx.init("feature:audio"));
+    BTFW.define("feature:audionorm", ["feature:audio"], async (ctx) => ctx.init("feature:audio"));
+    BTFW.define("feature:monoaudio", ["feature:audio"], async (ctx) => ctx.init("feature:audio"));
   });
 })();
