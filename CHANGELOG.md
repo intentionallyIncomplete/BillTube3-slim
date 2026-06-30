@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.15.0...v1.16.0) (2026-06-30)
+
+
+### Features
+
+* **audio:** merge enhancer, mono mix, and unified audio module ([#128](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/128)) ([10da6fb](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/10da6fbbf41db350995ce0d2e792b31cbbb8ee70))
+
 # [1.15.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.14.0...v1.15.0) (2026-06-28)
 
 
