@@ -335,7 +335,6 @@
         BTFW.init("feature:motd-editor"),
         BTFW.init("feature:videoEnhancements"),
         BTFW.init("feature:channelThemeAdmin"),
-        BTFW.init("feature:audioEnhancer"),
         BTFW.init("feature:themeSettings"),
         BTFW.init("feature:ratings"),
         BTFW.init("feature:audioboost"),

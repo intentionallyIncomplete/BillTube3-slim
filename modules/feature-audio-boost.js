@@ -5,10 +5,7 @@
   const INTERNAL_SET_GRACE_MS = 2000;   // time window where changes are considered ours
   const WATCHDOG_TICK_MS      = 800;    // polling backup
   const REAPPLY_DEBOUNCE_MS   = 800;    // avoid rapid re-sets
-  const TRUSTED_DOMAINS       = [
-    'cytube.billtube.workers.dev',
-    'billtube.workers.dev'
-  ];
+  const DEFAULT_CORS_PROXY    = 'https://vidprox.billtube.workers.dev/?url=';
 
   function safeNow() { return Date.now(); }
 
@@ -29,7 +26,19 @@
     normalizationEnabled: false,
 
     // Proxy and params
-    CORS_PROXY: 'https://vidprox.billtube.workers.dev/?url=',
+    get CORS_PROXY() {
+      const configured = typeof window !== 'undefined' && (
+        window.BTFW_CONFIG?.corsVideoProxy ||
+        window.BTFW_CONFIG?.integrations?.corsVideoProxy
+      );
+      if (typeof configured === 'string' && configured.trim()) {
+        const base = configured.trim();
+        if (base.includes('?')) return base;
+        const sep = base.endsWith('/') ? '' : '/';
+        return `${base}${sep}?url=`;
+      }
+      return DEFAULT_CORS_PROXY;
+    },
     BOOST_MULTIPLIER: 2.5,
     currentNormPreset: 'youtube',
 
@@ -50,8 +59,8 @@
 
     _isTrusted(urlStr) {
       try {
-        const u = new URL(urlStr);
-        return TRUSTED_DOMAINS.some(d => u.hostname === d);
+        const host = new URL(urlStr).hostname.toLowerCase();
+        return host.endsWith('.workers.dev');
       } catch { return false; }
     },
 
@@ -491,8 +500,11 @@
       const sharedAudio = window.BTFW_AUDIO;
 
       let boostButton = null;
+      let normButton = null;
       let shouldBoostAfterMediaChange = false;
-      let contextMenu = null;
+      let shouldNormalizeAfterMediaChange = false;
+      let boostContextMenu = null;
+      let normContextMenu = null;
 
       const BOOST_PRESETS = [
         { multiplier: 1.5, label: '150%' },
@@ -500,7 +512,7 @@
         { multiplier: 3.5, label: '350%' }
       ];
 
-      function updateButtonState(active) {
+      function updateBoostButtonState(active) {
         if (!boostButton) return;
 
         if (active) {
@@ -555,7 +567,7 @@
           shouldBoostAfterMediaChange = true;
           const percentage = Math.round(sharedAudio.BOOST_MULTIPLIER * 100);
           showToast(`Boosted by ${percentage}%`, 'success');
-          updateButtonState(true);
+          updateBoostButtonState(true);
         } else {
           const msg = sharedAudio._hasIframeOnlyMedia()
             ? 'Audio boost requires direct video playback'
@@ -567,10 +579,79 @@
       async function deactivateAudioBoost() {
         await sharedAudio.disableBoost();
         shouldBoostAfterMediaChange = false;
-        updateButtonState(false);
+        updateBoostButtonState(false);
       }
 
-      function createButton() {
+      function updateNormButtonState(active) {
+        if (!normButton) return;
+
+        if (active) {
+          normButton.classList.add('active');
+          normButton.style.background = 'rgba(52, 152, 219, 0.3)';
+          normButton.style.borderColor = '#3498db';
+          normButton.style.color = '#3498db';
+          normButton.style.boxShadow = '0 0 12px rgba(52, 152, 219, 0.6)';
+        } else {
+          normButton.classList.remove('active');
+          normButton.style.background = '';
+          normButton.style.borderColor = '';
+          normButton.style.color = '';
+          normButton.style.boxShadow = '';
+        }
+      }
+
+      function showNormToast(message, type = 'info') {
+        let toast = $('#btfw-audionorm-toast');
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.id = 'btfw-audionorm-toast';
+          toast.style.cssText = `
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: ${type === 'success' ? 'rgba(52, 152, 219, 0.9)' : 'rgba(235, 77, 75, 0.9)'};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: system-ui, -apple-system, sans-serif;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+          `;
+          document.body.appendChild(toast);
+        }
+
+        toast.textContent = message;
+        toast.style.background = type === 'success' ? 'rgba(52, 152, 219, 0.9)' : 'rgba(235, 77, 75, 0.9)';
+        toast.style.opacity = '1';
+
+        setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+      }
+
+      async function activateNormalization() {
+        const success = await sharedAudio.enableNormalization();
+        if (success) {
+          shouldNormalizeAfterMediaChange = true;
+          showNormToast('Normalization enabled', 'success');
+          updateNormButtonState(true);
+        } else {
+          const msg = sharedAudio._hasIframeOnlyMedia()
+            ? 'Audio normalization requires direct video playback'
+            : 'Failed to activate';
+          showNormToast(msg, 'error');
+        }
+      }
+
+      async function deactivateNormalization() {
+        await sharedAudio.disableNormalization();
+        shouldNormalizeAfterMediaChange = false;
+        updateNormButtonState(false);
+      }
+
+      function createBoostButton() {
         const btn = document.createElement('button');
         btn.id = 'btfw-vo-audioboost';
         btn.className = 'btn btn-sm btn-default btfw-vo-adopted';
@@ -587,11 +668,11 @@
           }
         });
 
-        btn.addEventListener('mouseenter', () => showContextMenu());
+        btn.addEventListener('mouseenter', () => showBoostContextMenu());
         btn.addEventListener('mouseleave', () => {
           setTimeout(() => {
-            if (!contextMenu?.matches(':hover') && !btn.matches(':hover')) {
-              hideContextMenu();
+            if (!boostContextMenu?.matches(':hover') && !btn.matches(':hover')) {
+              hideBoostContextMenu();
             }
           }, 100);
         });
@@ -599,8 +680,37 @@
         return btn;
       }
 
-      function createContextMenu() {
-        if (contextMenu) return contextMenu;
+      function createNormButton() {
+        const btn = document.createElement('button');
+        btn.id = 'btfw-vo-audionorm';
+        btn.className = 'btn btn-sm btn-default btfw-vo-adopted';
+        const presetLabel = sharedAudio.NORM_PRESETS[sharedAudio.currentNormPreset].label;
+        btn.title = `Toggle Audio Normalization (${presetLabel})`;
+        btn.setAttribute('data-btfw-overlay', '1');
+        btn.innerHTML = '<i class="fa-solid fa-waveform-lines"></i>';
+
+        btn.addEventListener('click', () => {
+          if (sharedAudio.normalizationEnabled) {
+            deactivateNormalization();
+          } else {
+            activateNormalization();
+          }
+        });
+
+        btn.addEventListener('mouseenter', () => showNormContextMenu());
+        btn.addEventListener('mouseleave', () => {
+          setTimeout(() => {
+            if (!normContextMenu?.matches(':hover') && !btn.matches(':hover')) {
+              hideNormContextMenu();
+            }
+          }, 100);
+        });
+
+        return btn;
+      }
+
+      function createBoostContextMenu() {
+        if (boostContextMenu) return boostContextMenu;
 
         const menu = document.createElement('div');
         menu.id = 'btfw-boost-context-menu';
@@ -654,7 +764,7 @@
 
           item.addEventListener('click', async () => {
             await sharedAudio.setBoostMultiplier(preset.multiplier);
-            updateContextMenuSelection();
+            updateBoostContextMenuSelection();
             if (boostButton) {
               const percentage = Math.round(preset.multiplier * 100);
               boostButton.title = `Toggle Audio Boost (${percentage}%)`;
@@ -670,32 +780,32 @@
         menu.addEventListener('mouseleave', () => {
           setTimeout(() => {
             if (!boostButton?.matches(':hover')) {
-              hideContextMenu();
+              hideBoostContextMenu();
             }
           }, 100);
         });
 
         document.body.appendChild(menu);
-        contextMenu = menu;
+        boostContextMenu = menu;
         return menu;
       }
 
-      function showContextMenu() {
+      function showBoostContextMenu() {
         if (!boostButton) return;
-        const menu = createContextMenu();
+        const menu = createBoostContextMenu();
         const rect = boostButton.getBoundingClientRect();
         menu.style.left = rect.left + 'px';
         menu.style.top = (rect.bottom + 5) + 'px';
         menu.style.display = 'block';
       }
 
-      function hideContextMenu() {
-        if (contextMenu) contextMenu.style.display = 'none';
+      function hideBoostContextMenu() {
+        if (boostContextMenu) boostContextMenu.style.display = 'none';
       }
 
-      function updateContextMenuSelection() {
-        if (!contextMenu) return;
-        const items = contextMenu.querySelectorAll('.btfw-context-item');
+      function updateBoostContextMenuSelection() {
+        if (!boostContextMenu) return;
+        const items = boostContextMenu.querySelectorAll('.btfw-context-item');
         items.forEach((item, idx) => {
           const preset = BOOST_PRESETS[idx];
           if (sharedAudio.BOOST_MULTIPLIER === preset.multiplier) {
@@ -708,216 +818,8 @@
         });
       }
 
-      function addButtonToOverlay() {
-        const voLeft = $('#btfw-vo-left');
-        if (!voLeft) return false;
-
-        const existing = $('#btfw-vo-audioboost');
-        if (existing) existing.remove();
-
-        boostButton = createButton();
-        voLeft.appendChild(boostButton);
-        return true;
-      }
-
-      function waitForOverlayBar(callback, maxAttempts = 20) {
-        let attempts = 0;
-        const interval = setInterval(() => {
-          attempts++;
-          if (addButtonToOverlay()) {
-            clearInterval(interval);
-            callback();
-          } else if (attempts >= maxAttempts) {
-            clearInterval(interval);
-          }
-        }, 500);
-      }
-
-      function initializePlayer() {
-        if (typeof videojs === 'undefined') { setTimeout(initializePlayer, 500); return; }
-
-        const playerElement = $('#ytapiplayer');
-        if (!playerElement) { setTimeout(initializePlayer, 500); return; }
-
-        sharedAudio.player = videojs('ytapiplayer');
-        sharedAudio.originalSrc = sharedAudio.player.currentSrc();
-        sharedAudio.startWatchdog();
-        // console.log('[audioboost] Player initialized');
-      }
-
-      function handleMediaChange() {
-        setTimeout(() => {
-          sharedAudio.cleanup();
-          sharedAudio.isProxied = false;
-          updateButtonState(false);
-          initializePlayer();
-
-          if (shouldBoostAfterMediaChange) {
-            setTimeout(() => { activateAudioBoost(); }, 1200);
-          }
-        }, 600);
-      }
-
-      function hookSocketReconnects() {
-        if (typeof socket === 'undefined' || !socket.on) return;
-        socket.on('disconnect', () => {
-          // keep time; watchdog will handle reapply after reconnect
-        });
-        socket.on('connect', () => {
-          // After reconnect, enforce proxy if needed
-          setTimeout(() => sharedAudio._checkAndReapply('socket-connect'), 500);
-        });
-        socket.on('reconnect', () => {
-          setTimeout(() => sharedAudio._checkAndReapply('socket-reconnect'), 500);
-        });
-        socket.on('changeMedia', handleMediaChange);
-      }
-
-      function boot() {
-        waitForOverlayBar(() => { initializePlayer(); });
-        hookSocketReconnects();
-      }
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', boot);
-      } else {
-        boot();
-      }
-
-      return {
-        name: "feature:audioboost",
-        activate: activateAudioBoost,
-        deactivate: deactivateAudioBoost,
-        isActive: () => sharedAudio.boostEnabled
-      };
-    });
-
-    // Legacy id used by billtube-fw < v1.0.6
-    BTFW.define("feature:audio-boost", ["feature:audioboost"], async (ctx) => ctx.init("feature:audioboost"));
-  });
-})();
-
-/* Audio Normalization Module */
-(function() {
-  'use strict';
-
-  function whenBTFWReady(callback) {
-    if (window.BTFW && typeof BTFW.define === 'function') {
-      callback();
-    } else {
-      setTimeout(() => whenBTFWReady(callback), 0);
-    }
-  }
-
-  whenBTFWReady(function() {
-    BTFW.define("feature:audionorm", [], async () => {
-      const $ = (selector, root = document) => root.querySelector(selector);
-      const sharedAudio = window.BTFW_AUDIO;
-
-      let normButton = null;
-      let shouldNormalizeAfterMediaChange = false;
-      let contextMenu = null;
-
-      function updateButtonState(active) {
-        if (!normButton) return;
-
-        if (active) {
-          normButton.classList.add('active');
-          normButton.style.background = 'rgba(52, 152, 219, 0.3)';
-          normButton.style.borderColor = '#3498db';
-          normButton.style.color = '#3498db';
-          normButton.style.boxShadow = '0 0 12px rgba(52, 152, 219, 0.6)';
-        } else {
-          normButton.classList.remove('active');
-          normButton.style.background = '';
-          normButton.style.borderColor = '';
-          normButton.style.color = '';
-          normButton.style.boxShadow = '';
-        }
-      }
-
-      function showToast(message, type = 'info') {
-        let toast = $('#btfw-audionorm-toast');
-        if (!toast) {
-          toast = document.createElement('div');
-          toast.id = 'btfw-audionorm-toast';
-          toast.style.cssText = `
-            position: fixed;
-            top: 70px;
-            right: 20px;
-            background: ${type === 'success' ? 'rgba(52, 152, 219, 0.9)' : 'rgba(235, 77, 75, 0.9)'};
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: system-ui, -apple-system, sans-serif;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            z-index: 10000;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-          `;
-          document.body.appendChild(toast);
-        }
-
-        toast.textContent = message;
-        toast.style.background = type === 'success' ? 'rgba(52, 152, 219, 0.9)' : 'rgba(235, 77, 75, 0.9)';
-        toast.style.opacity = '1';
-
-        setTimeout(() => { toast.style.opacity = '0'; }, 2000);
-      }
-
-      async function activateNormalization() {
-        const success = await sharedAudio.enableNormalization();
-        if (success) {
-          shouldNormalizeAfterMediaChange = true;
-          showToast('Normalization enabled', 'success');
-          updateButtonState(true);
-        } else {
-          const msg = sharedAudio._hasIframeOnlyMedia()
-            ? 'Audio normalization requires direct video playback'
-            : 'Failed to activate';
-          showToast(msg, 'error');
-        }
-      }
-
-      async function deactivateNormalization() {
-        await sharedAudio.disableNormalization();
-        shouldNormalizeAfterMediaChange = false;
-        updateButtonState(false);
-      }
-
-      function createButton() {
-        const btn = document.createElement('button');
-        btn.id = 'btfw-vo-audionorm';
-        btn.className = 'btn btn-sm btn-default btfw-vo-adopted';
-        const presetLabel = sharedAudio.NORM_PRESETS[sharedAudio.currentNormPreset].label;
-        btn.title = `Toggle Audio Normalization (${presetLabel})`;
-        btn.setAttribute('data-btfw-overlay', '1');
-        btn.innerHTML = '<i class="fa-solid fa-waveform-lines"></i>';
-
-        btn.addEventListener('click', () => {
-          if (sharedAudio.normalizationEnabled) {
-            deactivateNormalization();
-          } else {
-            activateNormalization();
-          }
-        });
-
-        btn.addEventListener('mouseenter', () => showContextMenu());
-        btn.addEventListener('mouseleave', () => {
-          setTimeout(() => {
-            if (!contextMenu?.matches(':hover') && !btn.matches(':hover')) {
-              hideContextMenu();
-            }
-          }, 100);
-        });
-
-        return btn;
-      }
-
-      function createContextMenu() {
-        if (contextMenu) return contextMenu;
+      function createNormContextMenu() {
+        if (normContextMenu) return normContextMenu;
 
         const menu = document.createElement('div');
         menu.id = 'btfw-norm-context-menu';
@@ -972,12 +874,12 @@
 
           item.addEventListener('click', async () => {
             await sharedAudio.setNormPreset(key);
-            updateContextMenuSelection();
+            updateNormContextMenuSelection();
             if (normButton) {
               normButton.title = `Toggle Audio Normalization (${preset.label})`;
             }
             if (sharedAudio.normalizationEnabled) {
-              showToast(`Preset: ${preset.label}`, 'success');
+              showNormToast(`Preset: ${preset.label}`, 'success');
             }
           });
 
@@ -987,33 +889,32 @@
         menu.addEventListener('mouseleave', () => {
           setTimeout(() => {
             if (!normButton?.matches(':hover')) {
-              hideContextMenu();
+              hideNormContextMenu();
             }
           }, 100);
         });
 
         document.body.appendChild(menu);
-        contextMenu = menu;
+        normContextMenu = menu;
         return menu;
       }
 
-      function showContextMenu() {
+      function showNormContextMenu() {
         if (!normButton) return;
-        const menu = createContextMenu();
+        const menu = createNormContextMenu();
         const rect = normButton.getBoundingClientRect();
-
         menu.style.left = rect.left + 'px';
         menu.style.top = (rect.bottom + 5) + 'px';
         menu.style.display = 'block';
       }
 
-      function hideContextMenu() {
-        if (contextMenu) contextMenu.style.display = 'none';
+      function hideNormContextMenu() {
+        if (normContextMenu) normContextMenu.style.display = 'none';
       }
 
-      function updateContextMenuSelection() {
-        if (!contextMenu) return;
-        const items = contextMenu.querySelectorAll('.btfw-context-item');
+      function updateNormContextMenuSelection() {
+        if (!normContextMenu) return;
+        const items = normContextMenu.querySelectorAll('.btfw-context-item');
         Object.keys(sharedAudio.NORM_PRESETS).forEach((key, idx) => {
           const item = items[idx];
           if (sharedAudio.currentNormPreset === key) {
@@ -1026,14 +927,18 @@
         });
       }
 
-      function addButtonToOverlay() {
+      function addButtonsToOverlay() {
         const voLeft = $('#btfw-vo-left');
         if (!voLeft) return false;
 
-        const existing = $('#btfw-vo-audionorm');
-        if (existing) existing.remove();
+        const existingBoost = $('#btfw-vo-audioboost');
+        if (existingBoost) existingBoost.remove();
+        const existingNorm = $('#btfw-vo-audionorm');
+        if (existingNorm) existingNorm.remove();
 
-        normButton = createButton();
+        boostButton = createBoostButton();
+        normButton = createNormButton();
+        voLeft.appendChild(boostButton);
         voLeft.appendChild(normButton);
         return true;
       }
@@ -1042,7 +947,7 @@
         let attempts = 0;
         const interval = setInterval(() => {
           attempts++;
-          if (addButtonToOverlay()) {
+          if (addButtonsToOverlay()) {
             clearInterval(interval);
             callback();
           } else if (attempts >= maxAttempts) {
@@ -1057,21 +962,23 @@
         const playerElement = $('#ytapiplayer');
         if (!playerElement) { setTimeout(initializePlayer, 500); return; }
 
-        if (!sharedAudio.player) {
-          sharedAudio.player = videojs('ytapiplayer');
-          sharedAudio.originalSrc = sharedAudio.player.currentSrc();
-        }
+        sharedAudio.player = videojs('ytapiplayer');
+        sharedAudio.originalSrc = sharedAudio.player.currentSrc();
         sharedAudio.startWatchdog();
-        // console.log('[audionorm] Player initialized');
+        // console.log('[audioboost] Player initialized');
       }
 
       function handleMediaChange() {
         setTimeout(() => {
           sharedAudio.cleanup();
           sharedAudio.isProxied = false;
-          updateButtonState(false);
+          updateBoostButtonState(false);
+          updateNormButtonState(false);
           initializePlayer();
 
+          if (shouldBoostAfterMediaChange) {
+            setTimeout(() => { activateAudioBoost(); }, 1200);
+          }
           if (shouldNormalizeAfterMediaChange) {
             setTimeout(() => { activateNormalization(); }, 1200);
           }
@@ -1080,9 +987,16 @@
 
       function hookSocketReconnects() {
         if (typeof socket === 'undefined' || !socket.on) return;
-        socket.on('disconnect', () => { /* noop */ });
-        socket.on('connect', () => setTimeout(() => sharedAudio._checkAndReapply('socket-connect'), 500));
-        socket.on('reconnect', () => setTimeout(() => sharedAudio._checkAndReapply('socket-reconnect'), 500));
+        socket.on('disconnect', () => {
+          // keep time; watchdog will handle reapply after reconnect
+        });
+        socket.on('connect', () => {
+          // After reconnect, enforce proxy if needed
+          setTimeout(() => sharedAudio._checkAndReapply('socket-connect'), 500);
+        });
+        socket.on('reconnect', () => {
+          setTimeout(() => sharedAudio._checkAndReapply('socket-reconnect'), 500);
+        });
         socket.on('changeMedia', handleMediaChange);
       }
 
@@ -1098,11 +1012,18 @@
       }
 
       return {
-        name: "feature:audionorm",
-        activate: activateNormalization,
-        deactivate: deactivateNormalization,
-        isActive: () => sharedAudio.normalizationEnabled
+        name: "feature:audioboost",
+        activate: activateAudioBoost,
+        deactivate: deactivateAudioBoost,
+        isActive: () => sharedAudio.boostEnabled,
+        activateNormalization,
+        deactivateNormalization,
+        isNormalizationActive: () => sharedAudio.normalizationEnabled
       };
     });
+
+    // Legacy id used by billtube-fw < v1.0.6
+    BTFW.define("feature:audio-boost", ["feature:audioboost"], async (ctx) => ctx.init("feature:audioboost"));
+    BTFW.define("feature:audionorm", ["feature:audioboost"], async (ctx) => ctx.init("feature:audioboost"));
   });
 })();
