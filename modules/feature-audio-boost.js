@@ -45,6 +45,7 @@
     // Watchdog state
     _watchdogInterval: null,
     _mutationObserver: null,
+    _watchdogPlayerHandlers: null,
     _lastKnownSrc: null,
     _lastInternalSrcSetAt: 0,
     _lastAutoReapplyAt: 0,
@@ -75,6 +76,22 @@
     _shouldForceProxy() {
       // We proxy iff any processing is on. (You can change this policy if you want â€œalways proxyâ€.)
       return this.boostEnabled || this.normalizationEnabled;
+    },
+
+    _hasAnonymousCrossOrigin() {
+      const el = this._getMediaElement();
+      if (!el) return false;
+      return el.crossOrigin === 'anonymous' || el.getAttribute('crossorigin') === 'anonymous';
+    },
+
+    _ensureAnonymousCrossOrigin() {
+      if (this._hasAnonymousCrossOrigin()) return false;
+      try {
+        this.player?.crossOrigin('anonymous');
+        return true;
+      } catch {
+        return false;
+      }
     },
 
     _same(a, b) {
@@ -158,13 +175,20 @@
       }
 
       // Video.js hooks that often fire on internal resets
-      try {
-        this.player.on('sourceset', () => this._checkAndReapply('sourceset'));
-        this.player.on('loadstart', () => this._checkAndReapply('loadstart'));
-        this.player.on('loadedmetadata', () => this._checkAndReapply('loadedmetadata'));
-        this.player.on('stalled', () => this._checkAndReapply('stalled'));
-        this.player.on('error', () => this._checkAndReapply('error'));
-      } catch {}
+      if (!this._watchdogPlayerHandlers) {
+        this._watchdogPlayerHandlers = {
+          sourceset: () => this._checkAndReapply('sourceset'),
+          loadstart: () => this._checkAndReapply('loadstart'),
+          loadedmetadata: () => this._checkAndReapply('loadedmetadata'),
+          stalled: () => this._checkAndReapply('stalled'),
+          error: () => this._checkAndReapply('error')
+        };
+        try {
+          Object.entries(this._watchdogPlayerHandlers).forEach(([event, handler]) => {
+            this.player.on(event, handler);
+          });
+        } catch {}
+      }
 
       // Lightweight interval backup
       this._watchdogInterval = setInterval(() => this._checkAndReapply('interval'), WATCHDOG_TICK_MS);
@@ -182,6 +206,14 @@
         try { this._mutationObserver.disconnect(); } catch {}
         try { this._mutationObserver._sourceObserver?.disconnect(); } catch {}
         this._mutationObserver = null;
+      }
+      if (this.player && this._watchdogPlayerHandlers) {
+        try {
+          Object.entries(this._watchdogPlayerHandlers).forEach(([event, handler]) => {
+            this.player.off(event, handler);
+          });
+        } catch {}
+        this._watchdogPlayerHandlers = null;
       }
     },
 
@@ -206,8 +238,7 @@
       // Allow trusted domains to stay unproxied but ensure crossOrigin for processing
       if (this._isTrusted(current)) {
         if (this._shouldForceProxy()) {
-          // For processing, trusted + crossOrigin is okay; just ensure CORS attribute
-          try { this.player.crossOrigin('anonymous'); } catch {}
+          this._ensureAnonymousCrossOrigin();
         }
         this.isProxied = false;
         this.originalSrc = current;
@@ -272,14 +303,18 @@
       try {
         const url = new URL(currentSrc);
         if (this._isTrusted(currentSrc)) {
-          // Use trusted as-is but make sure crossOrigin is set for WebAudio
+          this.originalSrc = currentSrc;
+          this.isProxied = false;
+
+          if (this._hasAnonymousCrossOrigin()) {
+            return true;
+          }
+
           const currentTime = this.player.currentTime();
           const wasPlaying = !this.player.paused();
 
-          this.originalSrc = currentSrc;
-
           try { this.player.pause(); } catch {}
-          try { this.player.crossOrigin('anonymous'); } catch {}
+          this._ensureAnonymousCrossOrigin();
 
           this._markInternalSrcSet();
           this.player.src({ src: currentSrc, type: 'video/mp4' });
@@ -288,7 +323,6 @@
           return new Promise((resolve) => {
             this.player.ready(() => {
               try { this.player.currentTime(currentTime); } catch {}
-              this.isProxied = false;
               if (wasPlaying) {
                 this.player.play().catch(() => {});
               }
@@ -313,9 +347,8 @@
       if (this.boostEnabled || this.normalizationEnabled) {
         if (!this.isProxied && !this._isTrusted(this.player.currentSrc())) {
           await this.ensureProxy();
-        } else {
-          // Ensure CORS for trusted sources when processing
-          try { this.player.crossOrigin('anonymous'); } catch {}
+        } else if (this._shouldForceProxy()) {
+          this._ensureAnonymousCrossOrigin();
         }
       }
 
@@ -385,7 +418,6 @@
     async enableBoost() {
       this.boostEnabled = true;
       const ok = await this.rebuildAudioChain();
-      if (ok) this.startWatchdog();
       return ok;
     },
 
@@ -426,7 +458,6 @@
     async enableNormalization() {
       this.normalizationEnabled = true;
       const ok = await this.rebuildAudioChain();
-      if (ok) this.startWatchdog();
       return ok;
     },
 
