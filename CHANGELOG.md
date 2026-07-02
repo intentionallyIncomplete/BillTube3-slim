@@ -1,3 +1,10 @@
+# [1.17.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.16.2...v1.17.0) (2026-07-02)
+
+
+### Features
+
+* **ui:** polish chat bar buttons and add emote sort options ([#134](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/134)) ([5dcac00](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/5dcac001198993766b716e2f73a17d0ae4fb5b73)), closes [#133](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/133)
+
 ## [1.16.2](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.16.1...v1.16.2) (2026-07-01)
 
 ## [1.16.1](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.16.0...v1.16.1) (2026-07-01)
