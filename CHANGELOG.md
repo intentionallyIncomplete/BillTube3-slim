@@ -1,3 +1,10 @@
+# [1.18.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.17.1...v1.18.0) (2026-07-02)
+
+
+### Features
+
+* **ui:** resizable channel settings modal ([#136](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/136)) ([8f699cb](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/8f699cb6f018573589baf45ebcfe72b44bdd2cb9))
+
 ## [1.17.1](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.17.0...v1.17.1) (2026-07-02)
 
 
