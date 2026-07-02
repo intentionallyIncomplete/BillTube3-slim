@@ -1,3 +1,10 @@
+## [1.17.1](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.17.0...v1.17.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* **ui:** keep channel modal dialog above in-modal backdrop ([#135](https://github.com/intentionallyIncomplete/BillTube3-slim/issues/135)) ([bbc5f3b](https://github.com/intentionallyIncomplete/BillTube3-slim/commit/bbc5f3bbcdcbfa4f701ae9ea4264dd7824755a55))
+
 # [1.17.0](https://github.com/intentionallyIncomplete/BillTube3-slim/compare/v1.16.2...v1.17.0) (2026-07-02)
 
 
