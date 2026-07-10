@@ -164,6 +164,8 @@ BTFW.define("feature:poll-overlay", [], async () => {
   let userVotes = new Set();
   let pollDomObserver = null;
   let observedPollElement = null;
+  let optionsGridClickWired = false;
+  let syncOverlayFrame = 0;
 
   const ENTITY_DECODER = document.createElement("textarea");
 
@@ -241,6 +243,8 @@ BTFW.define("feature:poll-overlay", [], async () => {
       }
     });
 
+    wireOptionsGridClicks(overlay.querySelector(".btfw-poll-options-grid"));
+
     return overlay;
   }
 
@@ -295,7 +299,7 @@ BTFW.define("feature:poll-overlay", [], async () => {
         return;
       }
 
-      syncOverlayFromDom();
+      scheduleSyncOverlayFromDom();
     });
 
     pollDomObserver.observe(pollWell, {
@@ -305,7 +309,53 @@ BTFW.define("feature:poll-overlay", [], async () => {
       attributes: true
     });
 
-    syncOverlayFromDom();
+    scheduleSyncOverlayFromDom();
+  }
+
+  function scheduleSyncOverlayFromDom() {
+    if (syncOverlayFrame) return;
+    syncOverlayFrame = requestAnimationFrame(() => {
+      syncOverlayFrame = 0;
+      syncOverlayFromDom();
+    });
+  }
+
+  function handleOverlayOptionVote(index, btn) {
+    try {
+      attemptVote(index);
+    } catch (e) {
+      console.error("Failed to trigger poll vote:", e);
+    }
+
+    if (currentPoll?.multi) {
+      if (userVotes.has(index)) {
+        userVotes.delete(index);
+        btn.classList.remove("active");
+      } else {
+        userVotes.add(index);
+        btn.classList.add("active");
+      }
+    } else {
+      userVotes.clear();
+      const grid = videoOverlay?.querySelector(".btfw-poll-options-grid");
+      grid?.querySelectorAll(".btfw-poll-option-btn").forEach((b) => {
+        b.classList.remove("active");
+      });
+      userVotes.add(index);
+      btn.classList.add("active");
+    }
+  }
+
+  function wireOptionsGridClicks(grid) {
+    if (optionsGridClickWired || !grid) return;
+    grid.addEventListener("click", (e) => {
+      const btn = e.target.closest(".btfw-poll-option-btn");
+      if (!btn || !grid.contains(btn)) return;
+      const index = parseInt(btn.dataset.optionIndex, 10);
+      if (Number.isNaN(index)) return;
+      handleOverlayOptionVote(index, btn);
+    });
+    optionsGridClickWired = true;
   }
 
   function syncOverlayFromDom() {
@@ -436,46 +486,21 @@ BTFW.define("feature:poll-overlay", [], async () => {
     
     if (optionsGrid && poll.options) {
       optionsGrid.innerHTML = "";
+      wireOptionsGridClicks(optionsGrid);
       poll.options.forEach((option, index) => {
         const optionRow = document.createElement("div");
         optionRow.className = "btfw-poll-option-row";
         
         const btn = document.createElement("button");
         btn.className = "btfw-poll-option-btn";
-        btn.dataset.optionIndex = index;
+        btn.dataset.optionIndex = String(index);
         
         const optionText = document.createElement("span");
         optionText.className = "btfw-poll-option-text";
         optionText.textContent = decodeHtmlEntities(option);
         
-        // FIXED: Use currentPoll.votes (cleaned data) instead of poll.votes
         const voteCount = currentPoll.votes[index] || 0;
         btn.textContent = voteCount.toString();
-        
-        btn.addEventListener("click", () => {
-          try {
-            attemptVote(index);
-          } catch (e) {
-            console.error("Failed to trigger poll vote:", e);
-          }
-
-          if (poll.multi) {
-            if (userVotes.has(index)) {
-              userVotes.delete(index);
-              btn.classList.remove("active");
-            } else {
-              userVotes.add(index);
-              btn.classList.add("active");
-            }
-          } else {
-            userVotes.clear();
-            optionsGrid.querySelectorAll(".btfw-poll-option-btn").forEach(b => {
-              b.classList.remove("active");
-            });
-            userVotes.add(index);
-            btn.classList.add("active");
-          }
-        });
         
         optionRow.appendChild(btn);
         optionRow.appendChild(optionText);

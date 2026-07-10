@@ -347,9 +347,13 @@ BTFW.define("feature:stack", ["feature:layout"], async () => {
   //   return el.getAttribute("data-title")||el.getAttribute("title")||el.id; 
   // }
   
-  function normalizeMotdStructure() {
+  function normalizeMotdStructure(force = false) {
     const motdwrap = document.getElementById("motdwrap");
     if (!motdwrap) return null;
+    if (!force && motdwrap.dataset.btfwMotdNormalized === "1") {
+      const motd = motdwrap.querySelector(":scope > #motd");
+      return motd ? { motdwrap, motd } : null;
+    }
 
     const toggle = document.getElementById("togglemotd");
     if (toggle && toggle.closest("#motd")) {
@@ -408,13 +412,15 @@ BTFW.define("feature:stack", ["feature:layout"], async () => {
       }
     }
 
+    motdwrap.dataset.btfwMotdNormalized = "1";
     return { motdwrap, motd };
   }
   
   function mergePlaylistControls() {
+    const plBar = document.getElementById("btfw-plbar");
+    if (plBar?.dataset.btfwMerged === "1") return;
     const controlsRow = document.getElementById("controlsrow");
     const rightControls = document.getElementById("rightcontrols");
-    const plBar = document.getElementById("btfw-plbar");
     const playlistWrap = document.getElementById("playlistwrap");
     const queueContainer = document.getElementById("queuecontainer");
     const playlistRow = document.getElementById("playlistrow");
@@ -602,6 +608,7 @@ BTFW.define("feature:stack", ["feature:layout"], async () => {
     if (!mainContainer.contains(controlsBar)) {
       mainContainer.insertBefore(controlsBar, mainContainer.firstChild);
     }
+    controlsBar.dataset.btfwMerged = "1";
   }
   
   function createGroupItem(group, elements) {
@@ -1674,7 +1681,9 @@ BTFW.define("feature:stack", ["feature:layout"], async () => {
 
   function applyMotdUpdate(html) {
     const refs = ensureStack();
-    const resolved = normalizeMotdStructure();
+    const motdwrap = document.getElementById("motdwrap");
+    if (motdwrap) delete motdwrap.dataset.btfwMotdNormalized;
+    const resolved = normalizeMotdStructure(true);
     const motd = resolved?.motd || resolveMotdHost();
     if (motd && typeof html === "string") {
       motd.innerHTML = html;
@@ -1882,12 +1891,39 @@ BTFW.define("feature:stack", ["feature:layout"], async () => {
     }
   }
   
+  function stackGroupsSatisfied(list) {
+    return GROUPS.every((group) => {
+      const hasDom = group.selectors.some((sel) => {
+        if (SKIP_SELECTORS.includes(sel)) return false;
+        const el = document.querySelector(sel);
+        if (!el || list.contains(el) || el.contains(list)) return false;
+        if (sel === "#pollwrap") {
+          const overlayState = el.dataset?.btfwPollOverlay;
+          const attrState = el.getAttribute?.("data-btfw-poll-overlay");
+          if (overlayState === "video" || attrState === "video") return false;
+        }
+        return true;
+      });
+      if (!hasDom) return true;
+      return Boolean(list.querySelector(`[data-bind="${group.id}"]`));
+    });
+  }
+
   function populate(refs){
     if (populateActive) return;
     populateActive = true;
     try {
     const list = refs.list;
     const footer = refs.footer;
+
+    if (stackGroupsSatisfied(list) && list.children.length > 0) {
+      ensureMotdStackPanel(refs);
+      ensurePollStackPanel(refs);
+      syncPollWrapVisibility();
+      relocateStackHeaderActions();
+      attachFooter(footer);
+      return;
+    }
     
     // Move poll button first, then decouple poll from playlist DOM
     movePollButton();
@@ -2031,7 +2067,7 @@ BTFW.define("feature:stack", ["feature:layout"], async () => {
   let n=0;
   const iv=setInterval(()=>{
     populate(refs);
-    if(++n>8) clearInterval(iv);
+    if(++n>2) clearInterval(iv);
   },700);
 }
 

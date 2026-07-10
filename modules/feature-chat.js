@@ -143,8 +143,27 @@ function repositionOpenPopins(){
     helper(ul);
   }
 }
-window.addEventListener("resize", repositionOpenPopins);
-window.addEventListener("scroll", repositionOpenPopins, true);
+
+const scheduleRepositionOpenPopins = (() => {
+  let pending = false;
+  const raf = window.requestAnimationFrame || ((cb) => setTimeout(cb, 16));
+  return () => {
+    const hasOpen =
+      document.getElementById("btfw-emotes-pop")?.dataset.btfwPopoverState === "open" ||
+      document.querySelector("#btfw-ct-modal .btfw-ct-card[data-btfw-popover-state=\"open\"]") ||
+      document.getElementById("btfw-userlist-pop")?.dataset.btfwPopoverState === "open";
+    if (!hasOpen) return;
+    if (pending) return;
+    pending = true;
+    raf(() => {
+      pending = false;
+      repositionOpenPopins();
+    });
+  };
+})();
+
+window.addEventListener("resize", scheduleRepositionOpenPopins);
+window.addEventListener("scroll", scheduleRepositionOpenPopins, true);
 document.addEventListener("btfw:layoutReady", ()=> setTimeout(repositionOpenPopins, 0));
 
   function adoptUserlistIntoPopover(){
@@ -1006,7 +1025,6 @@ const scheduleNormalizeChatActions = (() => {
     adoptNewMessageIndicator();
     ensureScrollManagement();
     scheduleProcessPendingChatMessages();
-    scheduleMarkChatMessageGroups();
   }
 
   const scheduleChatDomRefresh = (() => {
