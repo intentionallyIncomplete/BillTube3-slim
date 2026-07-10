@@ -47,6 +47,8 @@ BTFW.define("feature:emotes", [], async () => {
   };
 
   const TILE_APPROX = 72;
+  let gridClickHandlerAttached = false;
+  let positionWatchActive = false;
 
   function gridCols(grid){
     const w = grid.clientWidth || 520;
@@ -332,7 +334,7 @@ BTFW.define("feature:emotes", [], async () => {
 
 function positionPopover(){
   const pop = document.getElementById("btfw-emotes-pop");
-  if (!pop) return;
+  if (!pop || pop.dataset.btfwPopoverState !== "open") return;
   if (window.BTFW_positionPopoverAboveChatBar) {
     window.BTFW_positionPopoverAboveChatBar(pop, {
       widthPx: 530,
@@ -349,7 +351,7 @@ function positionPopover(){
     if (wrap._btfwEmoteWatch) return;
     wrap._btfwEmoteWatch = true;
 
-    const onReflow = () => positionPopover(false);
+    const onReflow = () => positionPopover();
     window.addEventListener("resize", onReflow);
     window.addEventListener("scroll", onReflow, true);
 
@@ -367,8 +369,31 @@ function positionPopover(){
     }
   }
 
+  function setupGridClickHandler(grid) {
+    if (gridClickHandlerAttached) return;
+    grid.addEventListener("click", (e) => {
+      const tile = e.target.closest(".btfw-emote-tile");
+      if (!tile || !grid.contains(tile)) return;
+      const idx = parseInt(tile.getAttribute("data-index"), 10);
+      const item = state.filtered[idx];
+      if (!item) return;
+      const input = $("#chatline");
+      if (!input) return;
+      if (state.tab === "emoji" || item.kind === "emoji") {
+        insertAtCursor(input, normalizeEmojiForInsert(item.char) + " ");
+        pushRecent({ kind: "emoji", char: item.char, name: item.name, keywords: item.keywords });
+      } else {
+        insertAtCursor(input, " " + item.name + " ");
+        pushRecent({ kind: "emote", name: item.name, image: item.image });
+      }
+      close();
+    });
+    gridClickHandlerAttached = true;
+  }
+
   function render(fromSearch){
     const grid = $("#btfw-emotes-grid"); if (!grid) return;
+    setupGridClickHandler(grid);
 
     const q = (state.search || "").toLowerCase();
     let base = [];
@@ -427,18 +452,6 @@ function positionPopover(){
         tile.setAttribute("aria-label", item.name || "Emote");
         tile.appendChild(img);
       }
-
-      tile.addEventListener("click", ()=>{
-        const input = $("#chatline"); if (!input) return;
-        if (state.tab==="emoji" || item.kind==="emoji") {
-          insertAtCursor(input, normalizeEmojiForInsert(item.char) + " ");
-          pushRecent({kind:"emoji", char:item.char, name:item.name, keywords:item.keywords});
-        } else {
-          insertAtCursor(input, " " + item.name + " ");
-          pushRecent({kind:"emote", name:item.name, image:item.image});
-        }
-        close();
-      });
 
       return tile;
     }
@@ -543,8 +556,15 @@ c.addEventListener("click", ev=>{
   }
 
   /* ------------------- open / close / boot ------------------- */
+  function ensurePositionWatch() {
+    if (positionWatchActive) return;
+    positionWatchActive = true;
+    watchPosition();
+  }
+
   function open(){
     const pop = ensurePopover();
+    ensurePositionWatch();
     loadChannelEmotes();
     loadRecent();
     state.sort = readSortMode();
@@ -569,7 +589,6 @@ c.addEventListener("click", ev=>{
     removeLegacyButtons();
     ensureOurButton();
     bindAnyExistingOpeners();
-    watchPosition();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);

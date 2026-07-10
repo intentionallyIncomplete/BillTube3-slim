@@ -358,9 +358,9 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:themeMode"], async (
         document.body.classList.toggle("btfw-desktop-scroll-enabled", !shouldVertical);
       }
       placeStackInLayout();
-      refreshVideoSizing();
+      scheduleRefreshVideoSizing();
       setTimeout(() => {
-        refreshVideoSizing();
+        scheduleRefreshVideoSizing();
         try {
           window.dispatchEvent(new Event("resize"));
         } catch (_) {}
@@ -379,12 +379,12 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:themeMode"], async (
     setTop();
     applyViewportBudget();
     syncStackLayoutClasses();
-    refreshVideoSizing();
+    scheduleRefreshVideoSizing();
     wireVideoChromeObserver();
     requestAnimationFrame(() => {
       applyViewportBudget();
       alignPrimaryRowBottoms();
-      refreshVideoSizing();
+      scheduleRefreshVideoSizing();
     });
   }
   
@@ -627,6 +627,15 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:themeMode"], async (
 
   let layoutFrame = 0;
   let budgetFrame = 0;
+  let videoSizingFrame = 0;
+
+  function scheduleRefreshVideoSizing() {
+    if (videoSizingFrame) return;
+    videoSizingFrame = requestAnimationFrame(() => {
+      videoSizingFrame = 0;
+      refreshVideoSizing();
+    });
+  }
 
   function scheduleViewportBudget(){
     if (budgetFrame) return;
@@ -635,7 +644,7 @@ BTFW.define("feature:layout", ["feature:styleCore","feature:themeMode"], async (
       if (!isVertical) return;
       applyViewportBudget();
       alignPrimaryRowBottoms();
-      refreshVideoSizing();
+      scheduleRefreshVideoSizing();
     });
   }
 
