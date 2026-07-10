@@ -222,20 +222,6 @@ async function fetchTMDBCast(title){
   }
 
   function emitVoteSkip(){ try { socket.emit("voteskip"); } catch(_) {} }
-  function emitPlayNext(){ try { socket.emit("playNext"); } catch(_) {} }
-  function emitBumpLastAfterCurrent(){
-    try {
-      const items = $$("#queue .queue_entry");
-      if (items.length < 2) return "Not enough items to bump.";
-      const active = $("#queue .queue_active"); if (!active) return "No active item found.";
-      const last = items[items.length-1];
-      const fromUid = last.getAttribute("data-uid") || last.dataset?.uid;
-      const afterUid = active.getAttribute("data-uid") || active.dataset?.uid;
-      if (!fromUid || !afterUid) return "Missing media UID.";
-      socket.emit("moveMedia", { from: fromUid, after: afterUid });
-      return null;
-    } catch(e){ return "Bump failed."; }
-  }
   function emitQueueAdd(url){
     try {
       if (typeof window.parseMediaLink === "function") {
@@ -294,7 +280,6 @@ function sanitizeTitleForSearch(t){
   function listPrimary(){ return Array.from(new Set(Array.from(REG.values()).map(c=>c.name))).sort(); }
   function parseCommand(text){
     if (!text || text.length<2) return null;
-    if (text.startsWith("/me ")) return { name:"/me", args:[text.slice(4)] };
     if (text[0] !== "!") return null;
     const parts = text.slice(1).trim().split(/\s+/);
     const name = (parts.shift()||"").toLowerCase();
@@ -320,8 +305,6 @@ addCommand("cast", async (ctx)=>{
   return "";
 }, { desc:"Show cast for current or given title", usage:"!cast [title]" });
   
-  addCommand("pick",  (ctx)=>{ const raw=ctx.args.join(" "); const parts=raw.split(/[,|]/).map(s=>s.trim()).filter(Boolean); if (parts.length<2) return "Usage: !pick a, b, c"; sendChat(`🎯 I choose: ${parts[Math.floor(Math.random()*parts.length)]}`); return ""; }, { desc:"Pick randomly", usage:"!pick a, b, c" });
-  addCommand("ask",   ()=>{ const a=["Yes.","No.","Maybe.","Probably.","Probably not.","Absolutely.","Definitely not.","Ask again later."]; sendChat(a[Math.floor(Math.random()*a.length)]); return ""; }, { desc:"Magic-8", usage:"!ask <q>" });
   addCommand("time", async () => {
     const sg = await BTFW.init("feature:syncGuard");
     const seconds = await sg.getPlayerTime();
@@ -332,15 +315,9 @@ addCommand("cast", async (ctx)=>{
     sendChat(`[${formatPlaybackTime(seconds)}]`);
     return "";
   }, { desc: "Playback position", usage: "!time" });
-  addCommand("dice",  ()=>{ sendChat(`🎲 ${1+Math.floor(Math.random()*5)}`); return ""; }, { desc:"Roll 1–5", usage:"!dice" });
-  addCommand("roll",  ()=>{ sendChat(String(Math.floor(Math.random()*1000)).padStart(3,"0")); return ""; }, { desc:"Random 000–999", usage:"!roll" });
   addCommand("skip",  ()=>{ if (!hasRank(2)) return "You lack permission to voteskip."; emitVoteSkip(); return ""; }, { desc:"Vote skip", usage:"!skip" });
-  addCommand("next",  ()=>{ if (!hasRank(2)) return "You lack permission to play next."; emitPlayNext(); return ""; }, { desc:"Play next", usage:"!next" });
-  addCommand("bump",  ()=>{ if (!hasRank(2)) return "You lack permission to move items."; const e=emitBumpLastAfterCurrent(); return e||""; }, { desc:"Move last after current", usage:"!bump" });
   addCommand("add",   (ctx)=>{ if (!hasRank(2)) return "You lack permission to add."; const url=ctx.args.join(" ").trim(); if (!url) return "Usage: !add <url>"; const e=emitQueueAdd(url); return e||""; }, { desc:"Queue URL", usage:"!add <url>" });
-  addCommand("now",   ()=>{ const t=getCurrentTitle(); if (!t) return "No current media."; sendChat(`now: ${t}`); return ""; }, { desc:"Show current title", usage:"!now" });
   addCommand("sm",    ()=>{ const em=getChannelEmotes(); if (!em.length) return "No channel emotes found."; sendChat(em[Math.floor(Math.random()*em.length)]); return ""; }, { desc:"Random channel emote", usage:"!sm" });
-  addCommand("/me",   (ctx)=>{ const msg=(ctx.args[0]||"").trim(); if (msg) sendChat(`/me ${msg}`); return ""; });
 
   function onEnterIntercept(e){
     try {
