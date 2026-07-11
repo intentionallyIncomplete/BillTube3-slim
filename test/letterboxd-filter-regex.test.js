@@ -31,7 +31,22 @@ function pcreStyleReplace(filters, text) {
   return out;
 }
 
-test("letterboxd filter renders card from encoded poster tag", () => {
+test("letterboxd slug tag survives CyTube filters", () => {
+  const tag = "[letterboxdcard]the-furious[/letterboxdcard]";
+  const out = pcreStyleReplace(
+    [
+      {
+        source: "\\[letterboxdcard\\]([a-zA-Z0-9-]+)\\[\\/letterboxdcard\\]",
+        replace: "[letterboxdcard]\\1[/letterboxdcard]",
+        flags: "g",
+      },
+    ],
+    tag
+  );
+  assert.equal(out, tag);
+});
+
+test("letterboxd filter renders legacy card from encoded poster tag", () => {
   const tag =
     "[letterboxdcard]Hunter|2015|3.2|A rogue cop killer hunts the night.|a.ltrbxd.com/poster.jpg|hunter-2015[/letterboxdcard]";
   const out = pcreStyleReplace(letterboxdFilters, tag);
