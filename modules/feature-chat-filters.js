@@ -7,6 +7,9 @@ BTFW.define("feature:chat-filters", ["util:letterboxd", "util:tenor", "util:tmdb
   const mediaResolve = await btfwInit("util:media-resolve");
 
 const CHAT_MEDIA_MAX_STYLE = ' style="max-width:300px;max-height:300px"';
+// CyTube sanitize-html only allows src/alt on <img>; referrerpolicy is stripped server-side.
+const CHAT_IMGUR_REFERRER_ATTR = ' referrerpolicy="no-referrer"';
+const IMGUR_IMAGE_HOST_RE = /(?:^|\/\/)(?:i\.)?imgur\.com\//i;
 
 const customFilters = [
   { name: "monospace", source: "`(.+?)`", flags: "g", replace: "<code>\\1</code>", active: true, filterlinks: false },
@@ -32,7 +35,7 @@ const customFilters = [
   { name: "tenor media", source: "(https?://media\\d*\\.tenor\\.com/(?!m/)[\\w-]+/[^\\s<]+\\.(?:gif|webp))", flags: "gi", replace: `<img class="tenor chat-picture chat-media"${CHAT_MEDIA_MAX_STYLE} src="\\1" />`, active: true, filterlinks: true },
   { name: "tenor short", source: "(https?://(?:www\\.)?tenor\\.com/[\\w-]+\\.(?:gif|webp))", flags: "gi", replace: `<img class="tenor chat-picture chat-media"${CHAT_MEDIA_MAX_STYLE} src="\\1" />`, active: true, filterlinks: true },
   { name: "lensdump cdn", source: "(https?://b\\.l3n\\.co/[^\\s<]+\\.(?:gif|webp|png|jpe?g))", flags: "gi", replace: `<img class="lensdump chat-picture chat-media"${CHAT_MEDIA_MAX_STYLE} src="\\1" />`, active: true, filterlinks: true },
-  { name: "imgur direct", source: "(https?://i\\.imgur\\.com/[a-zA-Z0-9]+\\.(?:gif|webp|png|jpe?g|mp4)(?:\\?[^\\s<]*)?)", flags: "gi", replace: `<img class="imgur chat-picture chat-media"${CHAT_MEDIA_MAX_STYLE} src="\\1" />`, active: true, filterlinks: true },
+  { name: "imgur direct", source: "(https?://i\\.imgur\\.com/[a-zA-Z0-9]+\\.(?:gif|webp|png|jpe?g|mp4)(?:\\?[^\\s<]*)?)", flags: "gi", replace: `<img class="imgur chat-picture chat-media"${CHAT_MEDIA_MAX_STYLE}${CHAT_IMGUR_REFERRER_ATTR} src="\\1" />`, active: true, filterlinks: true },
   { name: "TMDB", source: "\\[tmdbcard\\]([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)(?:\\|([^\\[]+))?\\[\\/tmdbcard\\]", flags: "g", replace: "<a class=\"tmdb-card chat-media-card\" href=\"https:\\6\" target=\"_blank\" rel=\"noopener noreferrer\"><img class=\"tmdb-card__poster chat-media\" src=\"https://image.tmdb.org/t/p/w342\\5\" alt=\"\\1 poster\" onerror=\"this.style.display='none'\"><div class=\"tmdb-card__content\"><div class=\"tmdb-card__title\">\\1 <span class=\"tmdb-card__year\">(\\2)</span></div><div class=\"tmdb-card__rating\">★ \\3</div><div class=\"tmdb-card__overview\">\\4</div></div></a>", active: true, filterlinks: false },
   { name: "IMDB", source: "\\[imdbcard\\]([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)(?:\\|([^\\[]+))?\\[\\/imdbcard\\]", flags: "g", replace: "<a class=\"imdb-card chat-media-card\" href=\"https:\\6\" target=\"_blank\" rel=\"noopener noreferrer\"><img class=\"imdb-card__poster chat-media\" src=\"https://image.tmdb.org/t/p/w342\\5\" alt=\"\\1 poster\" onerror=\"this.style.display='none'\"><div class=\"imdb-card__content\"><div class=\"imdb-card__title\">\\1 <span class=\"imdb-card__year\">(\\2)</span></div><div class=\"imdb-card__rating\">★ \\3</div><div class=\"imdb-card__overview\">\\4</div></div></a>", active: true, filterlinks: false },
   { name: "Letterboxd slug", source: "\\[letterboxdcard\\]([a-zA-Z0-9-]+)\\[\\/letterboxdcard\\]", flags: "g", replace: "[letterboxdcard]\\1[/letterboxdcard]", active: true, filterlinks: false },
@@ -204,6 +207,49 @@ const customFilters = [
     });
   }
 
+  function isImgurImageSrc(src) {
+    return IMGUR_IMAGE_HOST_RE.test(String(src || ""));
+  }
+
+  function applyImgurReferrerPolicy(img) {
+    if (!img || img.nodeType !== 1 || img.dataset.btfwImgurRefFixed === "1") return;
+    const src = img.currentSrc || img.src || img.getAttribute("src") || "";
+    if (!isImgurImageSrc(src)) return;
+
+    img.dataset.btfwImgurRefFixed = "1";
+    img.referrerPolicy = "no-referrer";
+
+    if (!img.complete || img.naturalWidth === 0) {
+      const url = src;
+      img.removeAttribute("src");
+      img.src = url;
+    }
+  }
+
+  function patchImgurImages(root) {
+    if (!root || root.nodeType !== 1) return;
+    if (root.matches?.("img")) applyImgurReferrerPolicy(root);
+    root.querySelectorAll?.("img").forEach(applyImgurReferrerPolicy);
+  }
+
+  function wireImgurReferrerFix() {
+    const buf = document.getElementById("messagebuffer");
+    if (!buf || buf.dataset.btfwImgurRefWired === "1") return;
+    buf.dataset.btfwImgurRefWired = "1";
+
+    patchImgurImages(buf);
+
+    const mo = new MutationObserver((muts) => {
+      for (const m of muts) {
+        m.addedNodes.forEach((n) => {
+          if (n.nodeType !== 1) return;
+          patchImgurImages(n);
+        });
+      }
+    });
+    mo.observe(buf, { childList: true, subtree: true });
+  }
+
   function wireMediaCardRendering() {
     const buf = document.getElementById("messagebuffer");
     if (!buf || buf.dataset.btfwMediaCardRenderWired === "1") return;
@@ -271,6 +317,7 @@ const customFilters = [
     const $ = getjQuery();
     if (!$) {
       console.warn("[BTFW chat-filters] jQuery not available; cannot attach import button.");
+      wireImgurReferrerFix();
       wireMediaCardRendering();
       return;
     }
@@ -278,6 +325,7 @@ const customFilters = [
     const run = () => {
       addChatFilterButton($);
       wireChatUrlExpansion();
+      wireImgurReferrerFix();
       wireMediaCardRendering();
     };
     if (document.readyState === "loading") {
@@ -292,5 +340,7 @@ const customFilters = [
   return {
     importCustomChatFiltersToTextarea: ($) => importCustomChatFiltersToTextarea($ || getjQuery()),
     customFilters,
+    isImgurImageSrc,
+    applyImgurReferrerPolicy,
   };
 });
