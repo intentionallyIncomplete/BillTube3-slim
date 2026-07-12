@@ -7,6 +7,7 @@ BTFW.define("feature:chat-filters", ["util:letterboxd", "util:tenor", "util:tmdb
   const mediaResolve = await btfwInit("util:media-resolve");
 
 const CHAT_MEDIA_MAX_STYLE = ' style="max-width:300px;max-height:300px"';
+const CHAT_IMGUR_REFERRER_ATTR = ' referrerpolicy="no-referrer"';
 
 const customFilters = [
   { name: "monospace", source: "`(.+?)`", flags: "g", replace: "<code>\\1</code>", active: true, filterlinks: false },
@@ -32,7 +33,7 @@ const customFilters = [
   { name: "tenor media", source: "(https?://media\\d*\\.tenor\\.com/(?!m/)[\\w-]+/[^\\s<]+\\.(?:gif|webp))", flags: "gi", replace: `<img class="tenor chat-picture chat-media"${CHAT_MEDIA_MAX_STYLE} src="\\1" />`, active: true, filterlinks: true },
   { name: "tenor short", source: "(https?://(?:www\\.)?tenor\\.com/[\\w-]+\\.(?:gif|webp))", flags: "gi", replace: `<img class="tenor chat-picture chat-media"${CHAT_MEDIA_MAX_STYLE} src="\\1" />`, active: true, filterlinks: true },
   { name: "lensdump cdn", source: "(https?://b\\.l3n\\.co/[^\\s<]+\\.(?:gif|webp|png|jpe?g))", flags: "gi", replace: `<img class="lensdump chat-picture chat-media"${CHAT_MEDIA_MAX_STYLE} src="\\1" />`, active: true, filterlinks: true },
-  { name: "imgur direct", source: "(https?://i\\.imgur\\.com/[a-zA-Z0-9]+\\.(?:gif|webp|png|jpe?g|mp4)(?:\\?[^\\s<]*)?)", flags: "gi", replace: `<img class="imgur chat-picture chat-media"${CHAT_MEDIA_MAX_STYLE} src="\\1" />`, active: true, filterlinks: true },
+  { name: "imgur direct", source: "(https?://i\\.imgur\\.com/[a-zA-Z0-9]+\\.(?:gif|webp|png|jpe?g|mp4)(?:\\?[^\\s<]*)?)", flags: "gi", replace: `<img class="imgur chat-picture chat-media"${CHAT_MEDIA_MAX_STYLE}${CHAT_IMGUR_REFERRER_ATTR} src="\\1" />`, active: true, filterlinks: true },
   { name: "TMDB", source: "\\[tmdbcard\\]([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)(?:\\|([^\\[]+))?\\[\\/tmdbcard\\]", flags: "g", replace: "<a class=\"tmdb-card chat-media-card\" href=\"https:\\6\" target=\"_blank\" rel=\"noopener noreferrer\"><img class=\"tmdb-card__poster chat-media\" src=\"https://image.tmdb.org/t/p/w342\\5\" alt=\"\\1 poster\" onerror=\"this.style.display='none'\"><div class=\"tmdb-card__content\"><div class=\"tmdb-card__title\">\\1 <span class=\"tmdb-card__year\">(\\2)</span></div><div class=\"tmdb-card__rating\">★ \\3</div><div class=\"tmdb-card__overview\">\\4</div></div></a>", active: true, filterlinks: false },
   { name: "IMDB", source: "\\[imdbcard\\]([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)(?:\\|([^\\[]+))?\\[\\/imdbcard\\]", flags: "g", replace: "<a class=\"imdb-card chat-media-card\" href=\"https:\\6\" target=\"_blank\" rel=\"noopener noreferrer\"><img class=\"imdb-card__poster chat-media\" src=\"https://image.tmdb.org/t/p/w342\\5\" alt=\"\\1 poster\" onerror=\"this.style.display='none'\"><div class=\"imdb-card__content\"><div class=\"imdb-card__title\">\\1 <span class=\"imdb-card__year\">(\\2)</span></div><div class=\"imdb-card__rating\">★ \\3</div><div class=\"imdb-card__overview\">\\4</div></div></a>", active: true, filterlinks: false },
   { name: "Letterboxd slug", source: "\\[letterboxdcard\\]([a-zA-Z0-9-]+)\\[\\/letterboxdcard\\]", flags: "g", replace: "[letterboxdcard]\\1[/letterboxdcard]", active: true, filterlinks: false },

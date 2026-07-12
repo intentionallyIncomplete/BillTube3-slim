@@ -41,6 +41,7 @@ const imdbFilter = {
 };
 
 const CHAT_MEDIA_MAX_STYLE = ' style="max-width:300px;max-height:300px"';
+const CHAT_IMGUR_REFERRER_ATTR = ' referrerpolicy="no-referrer"';
 
 const lensdumpCdnFilter = {
   source: "(https?://b\\.l3n\\.co/[^\\s<]+\\.(?:gif|webp|png|jpe?g))",
@@ -50,7 +51,7 @@ const lensdumpCdnFilter = {
 
 const imgurDirectFilter = {
   source: "(https?://i\\.imgur\\.com/[a-zA-Z0-9]+\\.(?:gif|webp|png|jpe?g|mp4)(?:\\?[^\\s<]*)?)",
-  replace: `<img class="imgur chat-picture chat-media"${CHAT_MEDIA_MAX_STYLE} src="\\1" />`,
+  replace: `<img class="imgur chat-picture chat-media"${CHAT_MEDIA_MAX_STYLE}${CHAT_IMGUR_REFERRER_ATTR} src="\\1" />`,
   flags: "gi",
 };
 
@@ -102,6 +103,7 @@ test("imgur direct filter embeds i.imgur.com url", () => {
   const url = "https://i.imgur.com/Tpbp60F.gif";
   const out = pcreStyleReplace(imgurDirectFilter, url);
   assert.match(out, /class="imgur chat-picture chat-media"/);
+  assert.match(out, /referrerpolicy="no-referrer"/);
   assert.match(out, /https:\/\/i\.imgur\.com\/Tpbp60F\.gif/);
 });
 
