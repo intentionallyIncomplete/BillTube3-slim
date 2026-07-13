@@ -1,3 +1,10 @@
+# [1.22.0](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/compare/v1.21.2...v1.22.0) (2026-07-13)
+
+
+### Features
+
+* **build:** shrink production output and enforce bundle budgets ([#188](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/issues/188)) ([65ac706](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/commit/65ac7068e5e629f52426c450aea02fd74b8b0a0e)), closes [#178](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/issues/178) [#179](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/issues/179) [#180](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/issues/180)
+
 ## [1.21.2](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/compare/v1.21.1...v1.21.2) (2026-07-12)
 
 
