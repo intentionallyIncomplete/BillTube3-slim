@@ -171,7 +171,7 @@ Semantic-release on merge to `main` will:
 | `modules/**` | Source logic changed |
 | `css/**` | Styles changed |
 | `dist/*.bundle.js` | After `npm run build` |
-| `billtube-fw.js`, `src/billtube-fw.js` | Loader/manifest changed |
+| `dist/billtube-fw.js`, `src/billtube-fw.ts` | Loader/manifest changed |
 | `channel_config_settings.js` | Theme admin changes only — **not** CDN pin in feature PRs |
 | `package.json` | Script/deps changes only — **not** `version` in feature PRs |
 | `package-lock.json` | If present and deps changed |
@@ -179,7 +179,7 @@ Semantic-release on merge to `main` will:
 
 Do not stage unrelated WIP. Prefer explicit `git add <paths>` over `git add -A`.
 
-Semantic-release release assets (reference): `package.json`, `CHANGELOG.md`, `channel_config_settings.js`, `billtube-fw.js`, all `dist/*` bundles listed in `package.json` → `release.plugins` → `@semantic-release/git`.
+Semantic-release release assets (reference): `package.json`, `CHANGELOG.md`, `channel_config_settings.js`, `dist/billtube-fw.js`, all `dist/*` bundles listed in `package.json` → `release.plugins` → `@semantic-release/git`.
 
 ### 5. Commit
 

@@ -6,6 +6,7 @@ import { verifyCss } from "./build-css.js";
 
 const rootDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const required = [
+  "dist/billtube-fw.js",
   "dist/core.bundle.js",
   "dist/chat.bundle.js",
   "dist/player.bundle.js",

@@ -44,7 +44,6 @@ export default [
     ignores: [
       "dist/**",
       "node_modules/**",
-      "billtube-fw.js",
       "eslint.config.js",
       "stylelint.config.js",
       "lint-staged.config.js",

@@ -6,7 +6,7 @@ const tag = `v${version}`;
 
 const FILES = [
   "channel_config_settings.js",
-  "billtube-fw.js",
+  "dist/billtube-fw.js",
   "dist/core.bundle.js",
   "dist/chat.bundle.js",
   "dist/player.bundle.js",

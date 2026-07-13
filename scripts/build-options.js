@@ -11,6 +11,9 @@ export function getEsbuildBaseOptions(isDev) {
     format: "iife",
     platform: "browser",
     minify: !isDev,
+    treeShaking: true,
+    legalComments: isDev ? "inline" : "none",
+    drop: isDev ? [] : ["debugger"],
     sourcemap: isDev ? "linked" : false,
     logLevel: "silent"
   };

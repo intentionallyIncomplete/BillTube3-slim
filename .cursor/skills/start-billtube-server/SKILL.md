@@ -11,7 +11,7 @@ Starts the BillTube3-slim Node asset server so CyTube can load fw, bundles, and 
 
 `scripts/dev.js` orchestrates:
 
-1. Initial `npm run build` (bundles + `billtube-fw.js`)
+1. Initial `npm run build` (bundles + `dist/billtube-fw.js`)
 2. File watch on `modules/`, `src/`, `lib/`, `css/`, `user-release-notes.json` → rebuild on change
 3. Static server (`scripts/dev-server.js`) on **127.0.0.1:3000** with CORS
 4. Generates `dev/channel-settings.js` (localhost `CDN_BASE`, gitignored)
@@ -20,7 +20,7 @@ Starts the BillTube3-slim Node asset server so CyTube can load fw, bundles, and 
 
 ```
 - [ ] 1. Confirm repo root (BillTube3-slim)
-- [ ] 2. curl billtube-fw.js — if 200, server already up; else check/free port 3000
+- [ ] 2. curl dist/billtube-fw.js — if 200, server already up; else check/free port 3000
 - [ ] 3. Start dev server (background) only if step 2 was not 200
 - [ ] 4. Verify endpoints
 - [ ] 5. Report URLs + CyTube wiring (if relevant)
@@ -41,7 +41,7 @@ Default port: **3000** (`PORT` or `BTFW_DEV_PORT` overrides).
 **First, check whether a dev server is already healthy** — do not start a second one:
 
 ```powershell
-curl.exe -s -o NUL -w "%{http_code}" http://127.0.0.1:3000/billtube-fw.js
+curl.exe -s -o NUL -w "%{http_code}" http://127.0.0.1:3000/dist/billtube-fw.js
 ```
 
 If the response is **200**, port 3000 is already serving BillTube. Report the URLs below and stop — no need to run `npm run dev` again (a stale terminal or aborted task does not mean the server died).
@@ -77,7 +77,7 @@ The initial **build still completes** before the listen step fails — bundles o
 
 Recovery (in order):
 
-1. `curl` `http://127.0.0.1:3000/billtube-fw.js` — if **200**, reuse the existing server; do not restart.
+1. `curl` `http://127.0.0.1:3000/dist/billtube-fw.js` — if **200**, reuse the existing server; do not restart.
 2. Else find and kill the listener (see port commands above), then `npm run dev` again.
 3. Else set `BTFW_DEV_PORT` and update CyTube snippet port.
 
@@ -110,7 +110,7 @@ Granular scripts (server-only or snippet-only):
 After a short pause, confirm:
 
 ```bash
-curl.exe -s -o NUL -w "%{http_code}" http://127.0.0.1:3000/billtube-fw.js
+curl.exe -s -o NUL -w "%{http_code}" http://127.0.0.1:3000/dist/billtube-fw.js
 ```
 
 Expect **200**. Also check:
@@ -154,7 +154,7 @@ Stop-Process -Id <PID> -Force
 
 | Symptom | Check |
 |---------|--------|
-| `EADDRINUSE` on port 3000 | Build may have succeeded; `curl` billtube-fw.js — if 200, server is already up. Else `netstat` → `Stop-Process` → `npm run dev` (see §2b) |
+| `EADDRINUSE` on port 3000 | Build may have succeeded; `curl` dist/billtube-fw.js — if 200, server is already up. Else `netstat` → `Stop-Process` → `npm run dev` (see §2b) |
 | 404 on bundles | Run finished initial build? Check terminal for build errors |
 | CyTube loads CDN assets | `io.domain` / channel snippet must point at `127.0.0.1:3000`, not jsDelivr |
 | Mixed content blocked | Use local CyTube at `http://localhost:8080`, not `https://cytu.be` |

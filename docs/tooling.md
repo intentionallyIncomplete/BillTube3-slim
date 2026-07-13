@@ -25,7 +25,13 @@ Do not add new `.eslintrc.*`, `.stylelintrc.*`, or inline `lint-staged` blocks i
 - **pre-commit** — `lint-staged`
 - **commit-msg** — `commitlint`
 
-CI sets `HUSKY=0` during `npm ci` so install skips hook wiring; the workflow runs the same checks explicitly (`npm run lint:ci`, `typecheck`, `test`).
+CI sets `HUSKY=0` during `npm ci` so install skips hook wiring; the workflow runs the same checks explicitly (`npm run lint:ci`, `typecheck`, `test`, `build`, `check:bundles`).
+
+## Build outputs
+
+- Generated `dist/`, `css/`, and `modules/user-release-notes.generated.js` are gitignored on `main`.
+- Release tags include built assets via `@semantic-release/git` for jsDelivr (`@vX.Y.Z`).
+- Bundle byte budgets: `scripts/bundle-size-budget.json` — see [bundle-sizes.md](bundle-sizes.md).
 
 ## Application code
 

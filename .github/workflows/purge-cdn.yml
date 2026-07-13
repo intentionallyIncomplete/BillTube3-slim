@@ -10,7 +10,6 @@ on:
       - main
     paths:
       - "dist/**"
-      - "billtube-fw.js"
       - "css/**"
 
 jobs:

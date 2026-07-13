@@ -63,7 +63,7 @@ const server = http.createServer((req, res) => {
 <body>
   <h1>BillTube3-slim dev server</h1>
   <ul>
-    <li><a href="/billtube-fw.js">billtube-fw.js</a></li>
+    <li><a href="/dist/billtube-fw.js">dist/billtube-fw.js</a></li>
     <li><a href="/dev/channel-settings.js">dev/channel-settings.js</a> (CyTube channel snippet)</li>
     <li><a href="/dist/core.bundle.js">dist/core.bundle.js</a></li>
   </ul>
