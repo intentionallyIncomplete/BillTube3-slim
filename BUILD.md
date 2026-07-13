@@ -12,7 +12,7 @@ BillTube bundles modules for production (6 HTTP requests instead of 33+) and ser
 | `@latest` | `main` branch tip (moves every push) |
 | `@<commit-sha>` | Exact commit (only valid if that commit contains built `dist/`) |
 
-**Rule:** CyTube `CDN_BASE`, `billtube-fw.js`, and all `dist/*.bundle.js` / `css/*` must use the **same** ref. `billtube-fw.js` derives its asset base from its own script URL.
+**Rule:** CyTube `CDN_BASE`, `dist/billtube-fw.js`, and all `dist/*.bundle.js` / `css/*` must use the **same** ref. The loader derives its asset base from its own script URL.
 
 ## Bundle strategy
 
@@ -27,14 +27,15 @@ BillTube bundles modules for production (6 HTTP requests instead of 33+) and ser
 
 ```bash
 npm install
-npm run build          # esbuild: scss → css/, src + modules → billtube-fw.js + dist/*.bundle.js
-npm run release:verify # lint, typecheck, test, build (CI + local preflight)
+npm run build          # esbuild: scss → css/, src + modules → dist/billtube-fw.js + dist/*.bundle.js
+npm run release:verify # lint, typecheck, test, build, bundle size check
 npm run verify-dist    # fail if bundles missing
+npm run check:bundles  # compare dist/*.js to scripts/bundle-size-budget.json
 ```
 
 ### Local asset server (CyTube testing)
 
-`billtube-fw.js` derives `BASE` from its own script URL, so local fw loads local bundles and CSS.
+`dist/billtube-fw.js` derives `BASE` from its own script URL, so local fw loads local bundles and CSS.
 
 ```bash
 npm run dev            # build, watch modules/src/css, serve on :3000, write dev/channel-settings.js
@@ -59,7 +60,7 @@ External Javascript (General settings) requires `https://` and will reject `http
 
 Before a user-facing release, update `user-release-notes.json` (see `.cursor/skills/updating-user-release-notes/`) so **Options → User Preferences → General → Recent Updates** stays current.
 
-Boot always loads `dist/*.bundle.js` from the same origin/ref as `billtube-fw.js`.
+Boot always loads `dist/*.bundle.js` from the same origin/ref as `dist/billtube-fw.js`.
 
 ## CSS / SCSS
 
@@ -78,7 +79,7 @@ Boot always loads `dist/*.bundle.js` from the same origin/ref as `billtube-fw.js
 2. `npm run build:css` — compile all entry SCSS → `css/`.
 3. `npm run build` — CSS + JS bundles (what CI and release run).
 
-`billtube-fw.js` preloads `css/tokens.css`, `css/base.css`, and the feature sheets from the same `BASE` ref as bundles. CyTube channels never load `.scss`.
+`dist/billtube-fw.js` preloads `css/tokens.css`, `css/base.css`, and the feature sheets from the same `BASE` ref as bundles. CyTube channels never load `.scss`.
 
 **Lint:** `npm run lint:css` (stylelint on `scss/**/*.scss`).
 
@@ -89,9 +90,11 @@ On each semantic-release to `main`:
 1. Version bump in `package.json`
 2. `npm run build` — rebuild `dist/`
 3. `inject-cdn-version.js` — pin `channel_config_settings.js` to `@vX.Y.Z`
-4. Git commit includes `package.json`, `CHANGELOG.md`, `user-release-notes.json`, `modules/user-release-notes.generated.js`, `channel_config_settings.js`, `billtube-fw.js`, all `dist/*.bundle.js`, and compiled `css/*.css`
+4. Git commit includes `package.json`, `CHANGELOG.md`, `user-release-notes.json`, `modules/user-release-notes.generated.js`, `channel_config_settings.js`, `dist/billtube-fw.js`, all `dist/*.bundle.js`, and compiled `css/*.css`
 5. Git tag `vX.Y.Z` on that commit
-6. `npm run purge-cdn` — invalidate jsDelivr cache for fw, config, bundles, and CSS (also runs via `.github/workflows/purge-cdn.yml` when `dist/` or `billtube-fw.js` change on `main`)
+6. `npm run purge-cdn` — invalidate jsDelivr cache for fw, config, bundles, and CSS (release workflow; `purge-cdn.yml` on `main` when release commits touch `dist/` or `css/`)
+
+`dist/`, `css/`, and generated modules are **gitignored on `main`** between releases; only release tags carry built assets for jsDelivr.
 
 ### Commit types and version bumps
 
@@ -114,16 +117,17 @@ Paste the updated **`channel_config_settings.js`** from the release commit into 
 BillTube3-slim/
 ├── modules/              # Source (build input)
 ├── user-release-notes.json  # End-user Recent Updates copy (bundled into admin)
-├── dist/                 # Built bundles (committed on release)
+├── dist/                 # Built loader + bundles (gitignored on main; on release tags)
 ├── scss/                 # Stylesheet source (SCSS) — edit here
 │   └── partials/         # Shared partials (_*.scss); not compiled directly
-├── css/                  # Compiled CSS (build output; committed on release)
-├── billtube-fw.js        # Loader + boot (must match release tag)
+├── css/                  # Compiled CSS (gitignored on main; on release tags)
 ├── channel_config_settings.js  # CyTube channel snippet (pinned on release)
 └── scripts/
-    ├── build.js          # JS bundles + billtube-fw.js; calls build-css.js
+    ├── build.js          # JS bundles + dist/billtube-fw.js; calls build-css.js
     ├── build-css.js      # scss/*.scss → css/*.css (dart-sass)
     ├── verify-dist.js
+    ├── check-bundle-sizes.js
+    ├── bundle-size-budget.json
     ├── inject-cdn-version.js
     └── purge-cdn.js
 ```

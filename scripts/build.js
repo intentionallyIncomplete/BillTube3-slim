@@ -176,13 +176,14 @@ async function buildBundle(bundle, esbuildOptions) {
 
 async function buildFrameworkLoader(esbuildOptions) {
   const entry = path.join(rootDir, "src", "billtube-fw.ts");
-  const outfile = path.join(rootDir, "billtube-fw.js");
+  const outfile = path.join(distDir, "billtube-fw.js");
   await esbuild.build({
     ...esbuildOptions,
     entryPoints: [entry],
     outfile
   });
-  console.log("✓ Built billtube-fw.js");
+  const sizeKb = (fs.statSync(outfile).size / 1024).toFixed(1);
+  console.log(`✓ Built dist/billtube-fw.js (${sizeKb}KB)`);
 }
 
 (async function build() {

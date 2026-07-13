@@ -76,8 +76,7 @@ See [workers/movies-storage/README.md](workers/movies-storage/README.md) for rou
 ```
 modules/          # Feature source (bundled into dist/)
 css/              # Stylesheets (same CDN ref as bundles)
-dist/             # Built *.bundle.js (committed on release)
-billtube-fw.js    # Loader entrypoint
+dist/             # Built *.bundle.js and dist/billtube-fw.js (release tags only; gitignored on main)
 channel_config_settings.js   # CyTube channel snippet (CDN pin updated on release)
 user-release-notes.json      # Recent Updates copy for viewers
 ```

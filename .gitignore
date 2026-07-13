@@ -1,7 +1,10 @@
 node_modules/
 scripts/bundles/
 css/
+dist/
 scripts/.entries/
+modules/user-release-notes.generated.js
+billtube-fw.js
 *.map
 *.log
 .DS_Store

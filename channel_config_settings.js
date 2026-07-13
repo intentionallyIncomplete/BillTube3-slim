@@ -64,7 +64,7 @@ window.BTFW_THEME_ADMIN = {
 
 // BTFW_LOADER_SENTINEL
 (function (W, D) {
-  var FILE = "billtube-fw.js";
+  var FILE = "dist/billtube-fw.js";
 
   // Already loaded/applied? bail.
   if (W.BTFW && W.BTFW.init) { console.debug("[BTFW] already present; skip"); return; }
