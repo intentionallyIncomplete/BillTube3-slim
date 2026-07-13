@@ -15,23 +15,20 @@ BillTube is not a standalone app. It runs inside a CyTube channel as Custom Java
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) 18+ (for build and local dev)
-- A CyTube channel where you can edit **Channel Settings → Javascript**
+- A CyTube channel where you can edit **Channel Settings → Admin -> External Javascript** (loads over CDN)
 - Optional: local CyTube instance ([sync](https://github.com/intentionallyIncomplete/sync) Docker stack) for HTTP dev without mixed-content issues
 
 ## Quick start (channel operator)
 
-1. Copy `channel_config_settings.js` from the [latest release](https://github.com/intentionallyIncomplete/BillTube3-slim/releases) on `main`.
-2. In CyTube → **Channel Settings → Javascript**, paste the full snippet and save.
-3. Deploy the [movies-storage worker](workers/movies-storage/README.md) with secrets for movie and GIF APIs (`TMDB_API_KEY`, `GIPHY_API_KEY`, `KLIPY_APP_KEY`).
-4. Re-import chat filters if prompted after an update (Channel Settings → Chat → Filters).
-
-Viewers load BillTube automatically when they open the channel. After each release, update the snippet so `CDN_BASE` matches the new `@vX.Y.Z` tag.
+1. Copy the latest release version number from the [latest release](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/releases).
+2. In CyTube → **Channel Settings → Admin -> External Javascript**, paste the following CDN URL: https://cdn.jsdelivr.net/gh/IntentionallyIncomplete/cytube-custom-overlay-theme@latest/channel_config_settings.js
+3. Import chat filters (Channel Settings → Chat → Filters).
 
 ## Local development
 
 ```bash
 git clone https://github.com/intentionallyIncomplete/BillTube3-slim.git
-cd BillTube3-slim
+cd cytube-custom-overlay-theme
 npm install
 npm run dev
 ```
@@ -48,7 +45,7 @@ npm run dev
 
 ### Wire CyTube to localhost
 
-1. Start BillTube: `npm run dev`
+1. Start the local server: `npm run dev`
 2. Start local CyTube (see `sync/docker/README.md` in the CyTube repo)
 3. Channel Settings → **Javascript** → paste `dev/channel-settings.js` → Save
 
