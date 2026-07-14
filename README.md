@@ -1,3 +1,5 @@
+All credit for the original project goes to https://github.com/BillTube and the original project: https://github.com/BillTube/BillTube3/tree/main
+
 # Billtube3/Quiglytube-slim
 
 Modular UI enhancement framework for [CyTube](https://cytu.be) channels. BillTube/Quiglytube replaces the default layout with a glass-style sidebar, theme tooling, movie requests, GIF search, polls, and other viewer-facing features—loaded as a small set of bundles from jsDelivr or a local dev server.
