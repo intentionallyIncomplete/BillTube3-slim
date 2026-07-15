@@ -1,3 +1,10 @@
+## [1.25.1](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/compare/v1.25.0...v1.25.1) (2026-07-15)
+
+
+### Bug Fixes
+
+* **audio:** proxy non-CORS workers.dev media for Web Audio boost ([#195](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/issues/195)) ([8eb3f40](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/commit/8eb3f40a821f16b6f36d536da4dd2f1c5efbe58e))
+
 # [1.25.0](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/compare/v1.24.0...v1.25.0) (2026-07-15)
 
 
