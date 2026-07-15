@@ -83,17 +83,30 @@
       }
     },
 
-    // Only the CORS video proxy is safe for Web Audio. Other *.workers.dev CDNs
+    // Only CORS video proxies are safe for Web Audio. Other *.workers.dev CDNs
     // (movie hosts, etc.) often lack ACAO, which makes MediaElementSource output silence.
+    // Sibling vidprox.* deployments (channel CDNs) share the same ACAO contract.
     _isTrusted(urlStr) {
       if (!urlStr) return false;
       if (String(urlStr).includes(this.CORS_PROXY)) return true;
       try {
-        const origin = new URL(urlStr).origin.toLowerCase();
+        const parsed = new URL(urlStr);
+        const origin = parsed.origin.toLowerCase();
         const proxyOrigin = this._getCorsProxyOrigin();
-        return Boolean(proxyOrigin && origin === proxyOrigin);
+        if (proxyOrigin && origin === proxyOrigin) return true;
+        return /^vidprox\./i.test(parsed.hostname);
       } catch {
         return false;
+      }
+    },
+
+    _unwrapProxiedUrl(urlStr) {
+      if (!urlStr || !this._isTrusted(urlStr)) return urlStr;
+      try {
+        const nested = new URL(urlStr).searchParams.get('url');
+        return nested || urlStr;
+      } catch {
+        return urlStr;
       }
     },
 
@@ -115,14 +128,30 @@
       return el.crossOrigin === 'anonymous' || el.getAttribute('crossorigin') === 'anonymous';
     },
 
+    // Never enable CORS mode while the element still points at a non-ACAO host —
+    // the browser immediately re-fetches currentSrc with Origin and bricks Video.js
+    // (MEDIA_ERR_SRC_NOT_SUPPORTED) when the CDN omits Access-Control-Allow-Origin.
     _ensureAnonymousCrossOrigin() {
       if (this._hasAnonymousCrossOrigin()) return false;
+      const current = this.player?.currentSrc?.() || this._getMediaElement()?.currentSrc || '';
+      if (current && !this._isTrusted(current)) return false;
       try {
         this.player?.crossOrigin('anonymous');
         return true;
       } catch {
         return false;
       }
+    },
+
+    _clearMediaElementForCorsSwap() {
+      const el = this._getMediaElement();
+      if (!el) return;
+      try {
+        el.removeAttribute('src');
+        el.removeAttribute('crossorigin');
+        while (el.firstChild) el.removeChild(el.firstChild);
+        el.load();
+      } catch (_) {}
     },
 
     _same(a, b) {
@@ -433,21 +462,16 @@
       // If we intentionally set src recently, ignore
       if (this._isInsideInternalWindow()) return;
 
-      // If it's already proxied (or trusted and we opted to allow), nothing to do
-      const isAlreadyProxied = current.includes(this.CORS_PROXY);
-      if (isAlreadyProxied) {
+      // Already on a CORS-capable vidprox — keep crossOrigin, do not double-wrap
+      if (this._isTrusted(current)) {
         this.isProxied = true;
         this.proxiedSrc = current;
-        return;
-      }
-
-      // Allow trusted domains to stay unproxied but ensure crossOrigin for processing
-      if (this._isTrusted(current)) {
+        if (!this.originalSrc || this._isTrusted(this.originalSrc)) {
+          this.originalSrc = this._unwrapProxiedUrl(current);
+        }
         if (this._shouldForceProxy()) {
           this._ensureAnonymousCrossOrigin();
         }
-        this.isProxied = false;
-        this.originalSrc = current;
         return;
       }
 
@@ -467,10 +491,27 @@
       const t = this.player.currentTime();
       const wasPlaying = !this.player.paused();
 
-      this.originalSrc = currentSrc;
-      this.proxiedSrc = this.CORS_PROXY + encodeURIComponent(currentSrc);
+      // Already CORS-safe (configured proxy or sibling vidprox.*)
+      if (this._isTrusted(currentSrc)) {
+        this.isProxied = true;
+        this.proxiedSrc = currentSrc;
+        if (!this.originalSrc || this._isTrusted(this.originalSrc)) {
+          this.originalSrc = this._unwrapProxiedUrl(currentSrc);
+        }
+        this._ensureAnonymousCrossOrigin();
+        return true;
+      }
+
+      this.originalSrc = this._unwrapProxiedUrl(currentSrc) || currentSrc;
+      this.proxiedSrc = this.CORS_PROXY + encodeURIComponent(this.originalSrc);
 
       try { this.player.pause(); } catch {}
+
+      // Drop the untrusted src BEFORE enabling CORS mode. Setting
+      // crossOrigin while currentSrc is a non-ACAO CDN triggers an immediate
+      // CORS refetch that fails and leaves Video.js with MEDIA_ERR_SRC_NOT_SUPPORTED.
+      this._markInternalSrcSet();
+      this._clearMediaElementForCorsSwap();
       try { this.player.crossOrigin('anonymous'); } catch {}
 
       this._markInternalSrcSet();
@@ -521,44 +562,37 @@
       const currentSrc = this.player.currentSrc();
       if (!currentSrc) return false;
 
-      if (currentSrc.includes(this.CORS_PROXY)) {
+      if (this._isTrusted(currentSrc)) {
         this.isProxied = true;
         this.proxiedSrc = currentSrc;
-        return true;
-      }
-
-      try {
-        const url = new URL(currentSrc);
-        if (this._isTrusted(currentSrc)) {
-          this.originalSrc = currentSrc;
-          this.isProxied = false;
-
-          if (this._hasAnonymousCrossOrigin()) {
-            return true;
-          }
-
-          const currentTime = this.player.currentTime();
-          const wasPlaying = !this.player.paused();
-
-          try { this.player.pause(); } catch {}
-          this._ensureAnonymousCrossOrigin();
-
-          this._markInternalSrcSet();
-          this.player.src({ src: currentSrc, type: 'video/mp4' });
-          try { this.player.load(); } catch {}
-
-          return new Promise((resolve) => {
-            this.player.ready(() => {
-              try { this.player.currentTime(currentTime); } catch {}
-              if (wasPlaying) {
-                this.player.play().catch(() => {});
-              }
-              resolve(true);
-            });
-          });
+        if (!this.originalSrc || this._isTrusted(this.originalSrc)) {
+          this.originalSrc = this._unwrapProxiedUrl(currentSrc);
         }
-      } catch (e) {
-        console.warn('[BTFW_AUDIO] Invalid URL:', e);
+
+        if (this._hasAnonymousCrossOrigin()) {
+          return true;
+        }
+
+        const currentTime = this.player.currentTime();
+        const wasPlaying = !this.player.paused();
+
+        try { this.player.pause(); } catch {}
+        // Safe: currentSrc is already on a CORS proxy
+        this._ensureAnonymousCrossOrigin();
+
+        this._markInternalSrcSet();
+        this.player.src({ src: currentSrc, type: 'video/mp4' });
+        try { this.player.load(); } catch {}
+
+        return new Promise((resolve) => {
+          this.player.ready(() => {
+            try { this.player.currentTime(currentTime); } catch {}
+            if (wasPlaying) {
+              this.player.play().catch(() => {});
+            }
+            resolve(true);
+          });
+        });
       }
 
       // Fallback: force proxy and wait until the proxied media is ready
@@ -585,10 +619,17 @@
         return false;
       }
 
-      if (this.boostEnabled || this.normalizationEnabled || this.monoEnabled) {
-        if (!this.isProxied && !this._isTrusted(this.player.currentSrc())) {
-          await this.ensureProxy();
-        } else if (this._shouldForceProxy()) {
+      if (this._shouldForceProxy()) {
+        // Always key off live currentSrc — stale isProxied after CyTube reverts
+        // the URL used to call crossOrigin on the bare movie CDN and brick the player.
+        const liveSrc = this.player.currentSrc();
+        if (!this._isTrusted(liveSrc)) {
+          const proxied = await this.ensureProxy();
+          if (!proxied || !this._isTrusted(this.player.currentSrc())) {
+            console.error('[BTFW_AUDIO] Proxy required but currentSrc is not CORS-safe');
+            return false;
+          }
+        } else {
           this._ensureAnonymousCrossOrigin();
         }
       }
