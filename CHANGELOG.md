@@ -1,3 +1,10 @@
+## [1.25.2](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/compare/v1.25.1...v1.25.2) (2026-07-15)
+
+
+### Bug Fixes
+
+* **audio:** avoid CORS refetch that bricks player on mono enable ([#196](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/issues/196)) ([b2fe23f](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/commit/b2fe23f3c63400b296333be591a6f83a8c4c1848))
+
 ## [1.25.1](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/compare/v1.25.0...v1.25.1) (2026-07-15)
 
 
