@@ -1,3 +1,10 @@
+# [1.25.0](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/compare/v1.24.0...v1.25.0) (2026-07-15)
+
+
+### Features
+
+* **e2e:** add Playwright smoke suite for overlay boot and chrome ([#192](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/issues/192)) ([d4a31a9](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/commit/d4a31a9b95ab3d8bc651f99d6ea585ee8749a322))
+
 # [1.24.0](https://github.com/intentionallyIncomplete/cytube-custom-overlay-theme/compare/v1.23.1...v1.24.0) (2026-07-14)
 
 
