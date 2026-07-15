@@ -314,6 +314,31 @@
       return node;
     },
 
+    _connectPassthrough() {
+      if (!this.sourceNode || !this.audioContext) return false;
+      try { this.sourceNode.disconnect(); } catch (_) {}
+      try {
+        this.sourceNode.connect(this.audioContext.destination);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    },
+
+    _clearCrossOriginAttribute() {
+      const el = this._getMediaElement();
+      if (el) {
+        try {
+          el.crossOrigin = null;
+          el.removeAttribute('crossorigin');
+        } catch (_) {}
+      }
+      try { this.player?.crossOrigin?.(null); } catch (_) {}
+    },
+
+    // Soft teardown: drop boost/norm/mono nodes but keep the same <video>
+    // + MediaElementSource. Swapping tech.el_ (hard cleanup) desyncs Video.js
+    // controls — progress/time freeze while media.currentTime still moves.
     cleanup() {
       this.disconnectChain();
 
@@ -322,23 +347,32 @@
         mediaEl.disableRemotePlayback = false;
       }
 
-      // MediaElementSource permanently reroutes element output. Leaving the
-      // source disconnected mutes playback until refresh — swap the tech
-      // element so native audio works again. Callers re-apply src + time.
-      if (mediaEl && (this.sourceNode || mediaSourceRegistry().get(mediaEl) || mediaEl.__btfwSourceNode)) {
-        this._swapVideoTechElement(mediaEl);
-        mediaSourceRegistry().delete(mediaEl);
-        try { delete mediaEl.__btfwSourceNode; } catch (_) {}
-      }
-
-      this.sourceNode = null;
-      this._sourceMediaElement = null;
-
-      if (this.audioContext && this.audioContext.state === 'running') {
-        this.audioContext.suspend().catch(() => {});
+      const keptPassthrough = this._connectPassthrough();
+      if (!keptPassthrough) {
+        this.sourceNode = null;
+        this._sourceMediaElement = null;
+        if (this.audioContext && this.audioContext.state === 'running') {
+          this.audioContext.suspend().catch(() => {});
+        }
       }
 
       this.stopWatchdog();
+    },
+
+    async _disableAllProcessing() {
+      // Keep the current media element + MediaElementSource. MES permanently
+      // captures element audio; navigating back to a non-ACAO host while the
+      // source node is still bound yields silence (RMS 0) even with passthrough.
+      // Staying on the CORS proxy (or any trusted URL) keeps audio alive without
+      // swapping tech.el_ (which freezes Video.js controls).
+      this.cleanup();
+
+      const liveSrc = this.player?.currentSrc?.() || '';
+      if (this.sourceNode && liveSrc && !this._isTrusted(liveSrc)) {
+        await this.ensureProxy();
+        this._connectPassthrough();
+      }
+      return true;
     },
 
     _restorePlayerSrc(src, { currentTime = 0, wasPlaying = false, clearCrossOrigin = false } = {}) {
@@ -346,7 +380,9 @@
 
       try { this.player.pause(); } catch {}
       if (clearCrossOrigin) {
-        try { this.player.crossOrigin(null); } catch {}
+        // Clear on the element first — player.crossOrigin(null) throws when
+        // tech.el_ is briefly missing after DOM churn ("Cannot set properties of null").
+        this._clearCrossOriginAttribute();
       }
 
       this._markInternalSrcSet();
@@ -728,24 +764,7 @@
         return ok;
       }
 
-      const currentTime = this.player?.currentTime?.() || 0;
-      const wasPlaying = this.player ? !this.player.paused() : false;
-      const restoreOriginal = Boolean(this.originalSrc && this.isProxied);
-      const targetSrc = restoreOriginal
-        ? this.originalSrc
-        : (this.player?.currentSrc?.() || null);
-
-      this.cleanup();
-
-      if (targetSrc) {
-        await this._restorePlayerSrc(targetSrc, {
-          currentTime,
-          wasPlaying,
-          clearCrossOrigin: restoreOriginal
-        });
-        if (restoreOriginal) this.isProxied = false;
-      }
-      return true;
+      return this._disableAllProcessing();
     },
 
     async enableNormalization() {
@@ -780,24 +799,7 @@
         return ok;
       }
 
-      const currentTime = this.player?.currentTime?.() || 0;
-      const wasPlaying = this.player ? !this.player.paused() : false;
-      const restoreOriginal = Boolean(this.originalSrc && this.isProxied);
-      const targetSrc = restoreOriginal
-        ? this.originalSrc
-        : (this.player?.currentSrc?.() || null);
-
-      this.cleanup();
-
-      if (targetSrc) {
-        await this._restorePlayerSrc(targetSrc, {
-          currentTime,
-          wasPlaying,
-          clearCrossOrigin: restoreOriginal
-        });
-        if (restoreOriginal) this.isProxied = false;
-      }
-      return true;
+      return this._disableAllProcessing();
     },
 
     async enableMono() {
@@ -815,24 +817,7 @@
         return ok;
       }
 
-      const currentTime = this.player?.currentTime?.() || 0;
-      const wasPlaying = this.player ? !this.player.paused() : false;
-      const restoreOriginal = Boolean(this.originalSrc && this.isProxied);
-      const targetSrc = restoreOriginal
-        ? this.originalSrc
-        : (this.player?.currentSrc?.() || null);
-
-      this.cleanup();
-
-      if (targetSrc) {
-        await this._restorePlayerSrc(targetSrc, {
-          currentTime,
-          wasPlaying,
-          clearCrossOrigin: restoreOriginal
-        });
-        if (restoreOriginal) this.isProxied = false;
-      }
-      return true;
+      return this._disableAllProcessing();
     }
   };
 })();
