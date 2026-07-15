@@ -5,7 +5,7 @@
   const INTERNAL_SET_GRACE_MS = 2000;   // time window where changes are considered ours
   const WATCHDOG_TICK_MS      = 800;    // polling backup
   const REAPPLY_DEBOUNCE_MS   = 800;    // avoid rapid re-sets
-  const DEFAULT_CORS_PROXY    = 'https://vidprox.billtube.workers.dev/?url=';
+  const DEFAULT_CORS_PROXY    = 'https://vidprox.movies-storage-a.workers.dev/?url=';
 
   function mediaSourceRegistry() {
     if (!window.__btfwMediaSourceNodes) {

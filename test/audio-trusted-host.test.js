@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-const DEFAULT_CORS_PROXY = "https://vidprox.billtube.workers.dev/?url=";
+const DEFAULT_CORS_PROXY = "https://vidprox.movies-storage-a.workers.dev/?url=";
 
 function getCorsProxyOrigin(corsProxy = DEFAULT_CORS_PROXY) {
   try {
@@ -49,16 +49,16 @@ function canEnableAnonymousCrossOrigin(currentSrc, corsProxy = DEFAULT_CORS_PROX
 
 test("trusts only the CORS video proxy host", () => {
   assert.equal(
-    isTrusted("https://vidprox.billtube.workers.dev/?url=https%3A%2F%2Fexample.com%2Fv.mp4"),
+    isTrusted("https://vidprox.movies-storage-a.workers.dev/?url=https%3A%2F%2Fexample.com%2Fv.mp4"),
     true
   );
-  assert.equal(isTrusted("https://vidprox.billtube.workers.dev/other"), true);
+  assert.equal(isTrusted("https://vidprox.movies-storage-a.workers.dev/other"), true);
 });
 
-test("trusts sibling vidprox.* CORS proxies already used by CyTube CDNs", () => {
+test("trusts sibling vidprox.* CORS proxies", () => {
   assert.equal(
     isTrusted(
-      "https://vidprox.movies-storage-a.workers.dev/?url=https%3A%2F%2Fsweet-pine.example%2Fv.mp4"
+      "https://vidprox.billtube.workers.dev/?url=https%3A%2F%2Fsweet-pine.example%2Fv.mp4"
     ),
     true
   );
@@ -104,13 +104,13 @@ test("blocks crossOrigin enable while currentSrc is a non-CORS movie CDN", () =>
 test("allows crossOrigin enable once currentSrc is on a vidprox", () => {
   assert.equal(
     canEnableAnonymousCrossOrigin(
-      "https://vidprox.billtube.workers.dev/?url=https%3A%2F%2Fquiglysmovies.example%2Fv.mp4"
+      "https://vidprox.movies-storage-a.workers.dev/?url=https%3A%2F%2Fquiglysmovies.example%2Fv.mp4"
     ),
     true
   );
   assert.equal(
     canEnableAnonymousCrossOrigin(
-      "https://vidprox.movies-storage-a.workers.dev/?url=https%3A%2F%2Fcdn.example%2Fv.mp4"
+      "https://vidprox.billtube.workers.dev/?url=https%3A%2F%2Fcdn.example%2Fv.mp4"
     ),
     true
   );

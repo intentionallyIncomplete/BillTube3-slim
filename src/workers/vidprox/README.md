@@ -10,7 +10,7 @@ npm install
 npm run deploy
 ```
 
-Default client URL: `https://vidprox.billtube.workers.dev/?url=`
+Default client URL: `https://vidprox.movies-storage-a.workers.dev/?url=`
 
 Override in channel config: `BTFW_CONFIG.corsVideoProxy`
 
