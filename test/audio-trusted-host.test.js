@@ -58,7 +58,7 @@ test("trusts only the CORS video proxy host", () => {
 test("trusts sibling vidprox.* CORS proxies", () => {
   assert.equal(
     isTrusted(
-      "https://vidprox.billtube.workers.dev/?url=https%3A%2F%2Fsweet-pine.example%2Fv.mp4"
+      "https://vidprox.movies-storage-a.workers.dev/?url=https%3A%2F%2Fsweet-pine.example%2Fv.mp4"
     ),
     true
   );
@@ -72,7 +72,7 @@ test("rejects other workers.dev CDNs that lack Web Audio CORS", () => {
     false
   );
   assert.equal(isTrusted("https://empty-bar-d620.movies-storage-a.workers.dev/x"), false);
-  assert.equal(isTrusted("https://cytube.billtube.workers.dev/video.mp4"), false);
+  assert.equal(isTrusted("https://cytube.moviesstoragea.workers.dev/video.mp4"), false);
 });
 
 test("rejects non-proxy hosts", () => {
@@ -110,7 +110,7 @@ test("allows crossOrigin enable once currentSrc is on a vidprox", () => {
   );
   assert.equal(
     canEnableAnonymousCrossOrigin(
-      "https://vidprox.billtube.workers.dev/?url=https%3A%2F%2Fcdn.example%2Fv.mp4"
+      "https://vidprox.movies-storage-a.workers.dev/?url=https%3A%2F%2Fcdn.example%2Fv.mp4"
     ),
     true
   );
